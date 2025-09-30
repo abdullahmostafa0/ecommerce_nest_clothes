@@ -249,25 +249,29 @@ export class ProductService {
 
     async delete(id: Types.ObjectId): Promise<DeleteResult> {
 
-        const product = await this.productRepository.findOne({ _id: id })
-        if (!product) {
-            throw new NotFoundException("Product not found")
-        }
-        if (product.subImages.length || product.mainImage) {
-            const ids = product.subImages.map((ele) => ele.public_id)
-            await this.cloudService.deleteFile(product.mainImage.public_id)
-            await this.cloudService.deleteFiles(ids)
-        }
-        await this.cartRepository.updateMany(
-            { "products.productId": id },
-            {
-                $pull: {
-                    products: { productId: id },
-                },
-            })
-        const deleted = await this.productRepository.deleteOne({ _id: id })
+        try {
+            const product = await this.productRepository.findOne({ _id: id })
+            if (!product) {
+                throw new NotFoundException("Product not found")
+            }
+            if (product.subImages.length || product.mainImage) {
+                const ids = product.subImages.map((ele) => ele.public_id)
+                await this.cloudService.deleteFile(product.mainImage.public_id)
+                await this.cloudService.deleteFiles(ids)
+            }
+            await this.cartRepository.updateMany(
+                { "products.productId": id },
+                {
+                    $pull: {
+                        products: { productId: id },
+                    },
+                })
+            const deleted = await this.productRepository.deleteOne({ _id: id })
 
-        return deleted;
+            return deleted;
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
     }
 
     async addVariant(id: Types.ObjectId, addVariantDTO: AddVariantDTO) {

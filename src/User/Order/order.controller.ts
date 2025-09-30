@@ -63,7 +63,7 @@ export class OrderController {
 
     @Patch(":orderId/status")
     async updateStatus(@Param() params: OrderIdDTO, @Body() body: UpdateStatusDTO) {
-        //return await this.orderService.updateStatus(params.orderId, body)
+        return await this.orderService.updateStatus(params.orderId, body)
     }
 
     @Get("get-orders-by-user")

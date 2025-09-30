@@ -3,7 +3,7 @@
 /*  */
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { CartRepository } from "src/DB/models/Cart/cart.repository";
-import { CreateOrderDTO, CreateOrderWithoutLoginDTO } from "./DTO";
+import { CreateOrderDTO, CreateOrderWithoutLoginDTO, UpdateStatusDTO } from "./DTO";
 import { Request } from "express";
 import { IorderProduct, OrderIdDTO, OrderStatus, PaymentWay } from "./order.interface";
 import { ProductRepository } from "src/DB/models/Product/product.repository";
@@ -307,6 +307,20 @@ export class OrderService {
             try {
             const orders = await this.orderRepository.findAll({ filter: {} })
             return orders
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+    }
+
+    async updateStatus(orderId: Types.ObjectId, body: UpdateStatusDTO) {
+        try {
+            const order = await this.orderRepository.findOne({ _id: orderId })
+            if (!order) {
+                throw new BadRequestException("Order not found")
+            }
+            order.status = body.status
+            await order.save()
+            return order
         } catch (error) {
             throw new InternalServerErrorException(error)
         }

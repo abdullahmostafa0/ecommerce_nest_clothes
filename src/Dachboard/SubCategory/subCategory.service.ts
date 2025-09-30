@@ -5,12 +5,14 @@ import { CreateDTO } from "./dto";
 import { Types } from "mongoose";
 import { CategoryRepository } from "src/DB/models/Category/category.repository";
 import slugify from "slugify";
+import { CloudService } from "src/common/service/cloud.service";
 
 @Injectable()
 export class SubCategoryService {
     constructor(
         private readonly subCategoryRepository: SubCategoryRepository,
         private readonly categoryRepository: CategoryRepository,
+        private readonly cloudService: CloudService,
     ) { }
 
 
@@ -21,9 +23,9 @@ export class SubCategoryService {
     ) {
         try {
             const { nameArabic, nameEnglish } = body
-            const subCategory = await this.subCategoryRepository.findOne({ nameEnglish })
+            const subCategory = await this.subCategoryRepository.findOne({ nameEnglish, nameArabic })
             if (subCategory) {
-                throw new ConflictException("Sub category already exist")
+                throw new ConflictException("Sub category name already exist")
             }
             const category = await this.categoryRepository.findOne({ _id: id })
             if (!category) {
@@ -57,30 +59,40 @@ export class SubCategoryService {
         body: CreateDTO,
         req: Request,
     ) {
-        const { nameArabic, nameEnglish } = body
-        const subCategory = await this.subCategoryRepository.findOne({ _id: id })
-        if (!subCategory) {
-            throw new NotFoundException("Sub category not found")
-        }
-        const subCategoryUpdated = await this.subCategoryRepository.updateOne({ _id: id }, {
-            nameArabic,
-            nameEnglish,
-            image: {
-                secure_url: body.image?.secure_url,
-                public_id: body.image?.public_id
-            },
-            updatedBy: req["user"]._id as Types.ObjectId
-        })
+        try {
+            const { nameArabic, nameEnglish } = body
+            const subCategory = await this.subCategoryRepository.findOne({ _id: id })
+            if (!subCategory) {
+                throw new NotFoundException("Sub category not found")
+            }
+            const subCategoryUpdated = await this.subCategoryRepository.updateOne({ _id: id }, {
+                nameArabic,
+                nameEnglish,
+                image: {
+                    secure_url: body.image?.secure_url,
+                    public_id: body.image?.public_id
+                },
+                updatedBy: req["user"]._id as Types.ObjectId
+            })
 
-        return subCategoryUpdated
+            return subCategoryUpdated
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+
 
     }
 
     async get(
     ) {
-        const subCategories = await this.subCategoryRepository.findAll(
-            { population: [{ path: 'categoryId createdBy' }] });
-        return subCategories
+        try {
+            const subCategories = await this.subCategoryRepository.findAll(
+                { population: [{ path: 'categoryId createdBy' }] });
+            return subCategories
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+
 
     }
 
@@ -88,13 +100,26 @@ export class SubCategoryService {
     async delete(
         id: Types.ObjectId
     ) {
-        const subCategory = await this.subCategoryRepository.findOne({ _id: id })
-        if (!subCategory) {
-            throw new NotFoundException("Sub category not found")
-        }
-        const subCategoryDeleted = await this.subCategoryRepository.deleteOne({ _id: id })
+        try {
+            const subCategory = await this.subCategoryRepository.findOne({ _id: id })
+            if (!subCategory) {
+                throw new NotFoundException("Sub category not found")
+            }
+            await this.categoryRepository.updateOne(
+                { _id: subCategory.categoryId },
+                { $pull: { subCategories: id } })
 
-        return subCategoryDeleted
+
+            if (subCategory.image?.public_id) {
+                await this.cloudService.deleteFile(subCategory.image.public_id)
+            }
+            const subCategoryDeleted = await this.subCategoryRepository.deleteOne({ _id: id })
+
+            return subCategoryDeleted
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+
 
     }
 }

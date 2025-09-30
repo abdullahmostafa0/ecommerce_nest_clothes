@@ -1,5 +1,5 @@
 /* eslint-disable prefer-const */
-import { ConflictException, Injectable, NotFoundException, Type } from "@nestjs/common";
+import { ConflictException, Injectable, InternalServerErrorException, NotFoundException, Type } from "@nestjs/common";
 import { CreateCategoryDTO, UpdateCategorDTO } from "./dto";
 import { CategoryRepository } from "src/DB/models/Category/category.repository";
 import { TypeUser } from "src/DB/models/User/user.model";
@@ -27,37 +27,40 @@ export class CategoryService {
         user: TypeUser,
         image: Express.Multer.File)
         : Promise<typeCategory> {
+        try {
+            const { nameArabic, nameEnglish } = createCategoryDTO;
+            const categoryExist = await this.findOne({ nameArabic, nameEnglish });
 
-        const { nameArabic, nameEnglish } = createCategoryDTO;
-        const categoryExist = await this.findOne({ nameArabic, nameEnglish});
+            if (categoryExist) {
+                throw new ConflictException("category already exist")
+            }
+            /*
+            const folderId = Math.ceil(Math.random() * 10000 + 9999).toString()
+            const { secure_url, public_id } = await this.cloudService.uploadFile(
+                {
+                    path: image.path,
+                    public_id:image.originalname,
+                    folder: folderId
+                })
+                */
+            const category = {
+                nameArabic,
+                nameEnglish,
+                createdBy: user.id as Types.ObjectId,
+                image: {
+                    secure_url: createCategoryDTO.image?.secure_url,
+                    public_id: createCategoryDTO.image?.public_id
+                },
+                folderId: createCategoryDTO.image.folderId
 
-        if (categoryExist) {
-            throw new ConflictException("category already exist")
+            };
+            const categoryCreated = await this.categoryRepository.create(category);
+
+            return categoryCreated;
+        } catch (error) {
+            throw new InternalServerErrorException(error)
         }
-        /*
-        const folderId = Math.ceil(Math.random() * 10000 + 9999).toString()
-        const { secure_url, public_id } = await this.cloudService.uploadFile(
-            {
-                path: image.path,
-                public_id:image.originalname,
-                folder: folderId
-            })
-            */
-        console.log(createCategoryDTO.image)
-        const category = {
-            nameArabic,
-            nameEnglish,
-            createdBy: user.id as Types.ObjectId,
-            image: {
-                secure_url: createCategoryDTO.image?.secure_url,
-                public_id: createCategoryDTO.image?.public_id
-            },
-            folderId: createCategoryDTO.image.folderId
 
-        };
-        const categoryCreated = await this.categoryRepository.create(category);
-
-        return categoryCreated;
     }
 
     async update(
@@ -65,54 +68,68 @@ export class CategoryService {
         updateCategoryDTO: UpdateCategorDTO,
         req: Request
     ) {
-        const category = await this.categoryRepository.findOne({ _id: id })
-        if (!category) {
-            throw new NotFoundException("category not found")
-        }
-        const { nameArabic, nameEnglish } = updateCategoryDTO
-        if (nameEnglish || nameArabic) {
-            const nameExist = await this.findOne({ nameEnglish, nameArabic })
-            if (nameExist) {
-                throw new ConflictException("Category name already exist")
+        try {
+            const category = await this.categoryRepository.findOne({ _id: id })
+            if (!category) {
+                throw new NotFoundException("category not found")
             }
-
-        }
-        const { file } = req
-        if (file) {
-            const { secure_url } = await this.cloudService.uploadFile(
-                {
-                    path: file.path,
-                    public_id: category.image.public_id,
+            const { nameArabic, nameEnglish } = updateCategoryDTO
+            if (nameEnglish || nameArabic) {
+                const nameExist = await this.findOne({ nameEnglish, nameArabic })
+                if (nameExist) {
+                    throw new ConflictException("Category name already exist")
                 }
-            )
-            category.image.secure_url = secure_url
+
+            }
+            const { file } = req
+            if (file) {
+                const { secure_url } = await this.cloudService.uploadFile(
+                    {
+                        path: file.path,
+                        public_id: category.image.public_id,
+                    }
+                )
+                category.image.secure_url = secure_url
+            }
+            return await category.save()
+        } catch (error) {
+            throw new InternalServerErrorException(error)
         }
-        return await category.save()
+
 
     }
 
     async getAll(): Promise<typeCategory[] | [] | IPaginate<typeCategory>> {
 
-        
-        const categories = await this.categoryRepository.findAll({
-            population: [{ path: "createdBy" }, { path: "subCategories" }]
-        })
-        return categories
+        try {
+            const categories = await this.categoryRepository.findAll({
+                population: [{ path: "createdBy" }, { path: "subCategories" }]
+            })
+            return categories
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+
     }
 
     async deleteCategory(id: Types.ObjectId): Promise<DeleteResult> {
+        try {
+            const category = await this.categoryRepository.findOne({ _id: id })
+            if (!category) {
+                throw new NotFoundException("category not found")
+            }
+            const updated = await this.productRepository.updateMany(
+                { category: id }, { category: null })
 
-        const category = await this.categoryRepository.findOne({ _id: id })
-        if (!category) {
-            throw new NotFoundException("category not found")
-        }
-        const updated = await this.productRepository.updateMany({ category: id }, { category: null })
-        console.log(updated)
-        if (category.image?.public_id) {
-            await this.cloudService.deleteFile(category.image.public_id)
-        }
-        const deleted = await this.categoryRepository.deleteOne({ _id: id })
+            if (category.image?.public_id) {
+                await this.cloudService.deleteFile(category.image.public_id)
+            }
+            const deleted = await this.categoryRepository.deleteOne({ _id: id })
 
-        return deleted
+            return deleted
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+
     }
 }
