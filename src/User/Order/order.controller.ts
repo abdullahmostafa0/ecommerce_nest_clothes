@@ -60,7 +60,7 @@ export class OrderController {
         return await this.orderService.cancelOrder(req, params.orderId)
         
     }
-
+    @Role(["admin"])
     @Patch(":orderId/status")
     async updateStatus(@Param() params: OrderIdDTO, @Body() body: UpdateStatusDTO) {
         return await this.orderService.updateStatus(params.orderId, body)
