@@ -60,7 +60,7 @@ export class OrderController {
         return await this.orderService.cancelOrder(req, params.orderId)
         
     }
-    @Role(["admin"])
+    @Role(["admin", "superAdmin"])
     @Patch(":orderId/status")
     async updateStatus(@Param() params: OrderIdDTO, @Body() body: UpdateStatusDTO) {
         return await this.orderService.updateStatus(params.orderId, body)
@@ -70,7 +70,7 @@ export class OrderController {
     async getOrderByUser(@Req() req: Request) {
         return await this.orderService.getOrderByUser(req)
     }
-    @Role(["admin"])
+    @Role(["admin", "superAdmin"])
     @Get("all-orders")
     async getAllOrders() {
         try {

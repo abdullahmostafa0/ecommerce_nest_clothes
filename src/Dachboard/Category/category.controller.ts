@@ -12,7 +12,7 @@ import { Request } from "express";
 import { Public } from "src/common/Decorator/public.decorator";
 
 @Controller("dashboard/category")
-@Role(["admin"])
+@Role(["superAdmin"])
 @UseGuards(AuthGuard, RoleGuard)
 export class CategoryController {
     constructor(private readonly categoryService: CategoryService) { }

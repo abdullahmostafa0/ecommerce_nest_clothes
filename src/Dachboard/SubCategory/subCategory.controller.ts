@@ -12,7 +12,7 @@ import { Types } from "mongoose";
 import { Public } from "src/common/Decorator/public.decorator";
 
 @Controller("dashboard/subCategory")
-@Role(["admin"])
+@Role(["superAdmin"])
 @UseGuards(AuthGuard, RoleGuard)
 export class SubCategoryController {
     constructor(private readonly categoryService: SubCategoryService) { }

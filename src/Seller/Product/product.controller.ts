@@ -11,8 +11,8 @@ import { CacheInterceptor, CacheTTL } from "@nestjs/cache-manager";
 import { Types } from "mongoose";
 import { Public } from "src/common/Decorator/public.decorator";
 
-@Controller('admin/product')
-@Role(["admin"])
+@Controller('product')
+@Role(["superAdmin"])
 @UseGuards(AuthGuard, RoleGuard)
 export class ProductController {
     constructor(private readonly productService: ProductService) { }
@@ -94,6 +94,16 @@ export class ProductController {
         @Param("id") id: Types.ObjectId, 
         @Body() editVariantDTO: EditVariantDTO) {
         const product = await this.productService.editVariant(id, editVariantDTO)
+        return {
+            message: 'Done',
+            product
+        }
+    }
+
+    @Public("public")
+    @Get(":id")
+    async getProduct(@Param("id") id: Types.ObjectId) {
+        const product = await this.productService.getProduct(id)
         return {
             message: 'Done',
             product

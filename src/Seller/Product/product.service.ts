@@ -338,6 +338,13 @@ export class ProductService {
         }
 
     }
+    async getProduct(id: Types.ObjectId) {
+        const product = await this.productRepository.findOne({ _id: id })
+        if (!product) {
+            throw new NotFoundException("Product not found")
+        }
+        return product
+    }
 
 
 }

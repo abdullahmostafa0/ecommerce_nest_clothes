@@ -12,7 +12,7 @@ import { Role } from "src/common/Decorator/role.decorator";
 export class ShippingController {
     constructor(private readonly shippingService: ShippingService) {}
 
-    @Role(["admin"])
+    @Role(["admin", "superAdmin"])
     @Post()
     async create(@Body() dto: CreateShippingDTO) {
         const shipping = await this.shippingService.create(dto);
@@ -26,14 +26,14 @@ export class ShippingController {
         return { shipping };
     }
 
-    @Role(["admin"])
+    @Role(["admin", "superAdmin"])
     @Delete(":id")
     async delete(@Param("id") id: string) {
         const shipping = await this.shippingService.delete(id);
         return { shipping };
     }
 
-    @Role(["admin"])
+    @Role(["admin", "superAdmin"])
     @Patch(":id")
     async update(@Param("id") id: string, @Body() dto: CreateShippingDTO) {
         const shipping = await this.shippingService.update(id, dto);

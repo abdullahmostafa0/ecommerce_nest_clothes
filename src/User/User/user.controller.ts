@@ -4,6 +4,7 @@ import { AuthGuard } from "src/common/Guards/auth.guard";
 import { RoleGuard } from "src/common/Guards/role.guard";
 import { UserService } from "./user.service";
 import { Types } from "mongoose";
+import { Public } from "src/common/Decorator/public.decorator";
 
 
 @UsePipes(new ValidationPipe({ whitelist: true }))
@@ -44,6 +45,7 @@ export class UserController {
             user
         }
     }
+    @Public("public")
     @Get("profile")
     async getProfile(@Req() req: Request) {
         const user = await this.userService.getProfile(req)
