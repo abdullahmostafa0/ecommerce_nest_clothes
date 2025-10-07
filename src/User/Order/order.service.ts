@@ -87,7 +87,12 @@ export class OrderService {
                 await this.productRepository.updateOne(
                     { _id: product.productId },
                     {
-                        $inc: { "variants.$[v].size.$[s].stock": -product.quantity }
+                        $inc: {
+                            "variants.$[v].size.$[s].stock": -product.quantity,
+                            sellCount: product.quantity
+                        },
+
+
                     },
                     {
                         arrayFilters: [
@@ -171,7 +176,10 @@ export class OrderService {
             await this.productRepository.updateOne(
                 { _id: product.productId },
                 {
-                    $inc: { "variants.$[v].size.$[s].stock": product.quantity }
+                    $inc: {
+                        "variants.$[v].size.$[s].stock": product.quantity,
+                        sellCount: -product.quantity
+                    }
                 },
                 {
                     arrayFilters: [
@@ -250,7 +258,10 @@ export class OrderService {
                 await this.productRepository.updateOne(
                     { _id: product.productId },
                     {
-                        $inc: { "variants.$[v].size.$[s].stock": -product.quantity }
+                        $inc: {
+                            "variants.$[v].size.$[s].stock": -product.quantity,
+                            sellCount: product.quantity
+                        }
                     },
                     {
                         arrayFilters: [
@@ -280,7 +291,10 @@ export class OrderService {
             await this.productRepository.updateOne(
                 { _id: product.productId },
                 {
-                    $inc: { "variants.$[v].size.$[s].stock": product.quantity }
+                    $inc: { 
+                    "variants.$[v].size.$[s].stock": product.quantity,
+                    sellCount: -product.quantity
+                    }
                 },
                 {
                     arrayFilters: [
@@ -294,7 +308,8 @@ export class OrderService {
         await this.orderRepository.updateOne(
             { _id: orderId },
             {
-                status: OrderStatus.cancelled            }
+                status: OrderStatus.cancelled
+            }
         )
         return { message: "Done" }
     }
@@ -304,7 +319,7 @@ export class OrderService {
     }
 
     async getAllOrders() {
-            try {
+        try {
             const orders = await this.orderRepository.findAll({ filter: {} })
             return orders
         } catch (error) {
@@ -320,6 +335,22 @@ export class OrderService {
             }
             order.status = body.status
             await order.save()
+            if (body.status === OrderStatus.cancelled) {
+                for (const product of order?.products as IorderProduct[]) {
+                    await this.productRepository.updateOne(
+                        { _id: product.productId },
+                        {
+                            $inc: { "variants.$[v].size.$[s].stock": product.quantity }
+                        },
+                        {
+                            arrayFilters: [
+                                { "v._id": product.variantId },
+                                { "s._id": product.sizeId }
+                            ]
+                        }
+                    );
+                }
+            }
             return order
         } catch (error) {
             throw new InternalServerErrorException(error)

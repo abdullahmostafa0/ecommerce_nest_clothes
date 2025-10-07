@@ -45,7 +45,7 @@ export class UserController {
             user
         }
     }
-    @Public("public")
+    @Role(["user", "admin", "superAdmin"])
     @Get("profile")
     async getProfile(@Req() req: Request) {
         const user = await this.userService.getProfile(req)

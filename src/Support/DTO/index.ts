@@ -7,7 +7,6 @@ export class CreateSupportDTO {
     name: string;
 
     @IsString()
-    @Matches(/^(002|\+2)?01[0125][0-9]{8}$/)
     phone: string;
 
     @IsString()

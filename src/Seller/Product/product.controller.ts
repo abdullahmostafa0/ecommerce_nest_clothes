@@ -100,8 +100,20 @@ export class ProductController {
         }
     }
 
+    
+
     @Public("public")
-    @Get(":id")
+    @Get("best-selling")
+    async getBestSelling() {
+        const products = await this.productService.getBestSelling()
+        return {
+            message: 'Done',
+            products
+        }
+    }
+
+    @Public("public")
+    @Get("withId/:id")
     async getProduct(@Param("id") id: Types.ObjectId) {
         const product = await this.productService.getProduct(id)
         return {

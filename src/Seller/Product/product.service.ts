@@ -346,5 +346,16 @@ export class ProductService {
         return product
     }
 
+    async getBestSelling() {
+        try {
+            const products = await this.productRepository.findAll({
+                sort: "sellCount -1",
+                limit: 10
+            })
+            return products
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
 
+    }
 }

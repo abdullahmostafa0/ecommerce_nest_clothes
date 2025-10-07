@@ -22,12 +22,14 @@ export abstract class DBService<T> {
             select,
             sort,
             page,
+            limit,
             population
         }: {
             filter?: FilterQuery<T>,
             select?: string,
             sort?: string,
             page?: number,
+            limit?: number,
             population?: PopulateOptions[]
         }): Promise<T[] | [] | IPaginate<T>> {
 
@@ -45,16 +47,19 @@ export abstract class DBService<T> {
             query.populate(population)
         }
         if (!page) {
+            if (limit) {
+                query.limit(limit)
+            }
             return await query.exec()
         }
-        const limit = 10
-        const skip = (page - 1) * limit;
+        const pageLimit = limit || 10
+        const skip = (page - 1) * pageLimit;
         const count = await this.model.countDocuments(filter || {})
-        const pages = Math.ceil(count / limit)
-        const document = await query.skip(skip).limit(limit).exec()
+        const pages = Math.ceil(count / pageLimit)
+        const document = await query.skip(skip).limit(pageLimit).exec()
         return {
             count,
-            pageSize: limit,
+            pageSize: pageLimit,
             pages,
             document
         }

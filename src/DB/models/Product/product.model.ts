@@ -85,6 +85,10 @@ export class Product {
     variants: IVariant[];
     @Prop({ type: String })
     folderId: string
+
+
+    @Prop({ type: Number, default: 0 , required: false})
+    sellCount: number
 }
 export const productSchema = SchemaFactory.createForClass(Product);
 // Enforce per-document uniqueness of (color + size) pairs within variants

@@ -11,7 +11,8 @@ export class CreateOrderDTO implements IOrderInputs{
     @MaxLength(1000)
     address:string;
 
-    @Matches(/^(002|\+2)?01[0125][0-9]{8}$/)
+    @IsString()
+    @IsNotEmpty()
     phone:string;
 
 
@@ -65,7 +66,7 @@ export class CreateOrderWithoutLoginDTO {
     @MaxLength(1000)
     address:string;
 
-    @Matches(/^(002|\+2)?01[0125][0-9]{8}$/)
+    @IsString()
     phone:string;
 
 
