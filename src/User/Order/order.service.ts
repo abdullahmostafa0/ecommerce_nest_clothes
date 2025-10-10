@@ -16,6 +16,7 @@ import Stripe from "stripe";
 import { PaymobService } from "src/Payment/paymob.service";
 import { UserRepository } from "src/DB/models/User/user.repository";
 import { emailEvent } from "src/common/Utility/email.event";
+import { emit } from "process";
 
 @Injectable()
 export class OrderService {
@@ -276,11 +277,11 @@ export class OrderService {
                         variants: {
                             $elemMatch: {
                                 _id: new Types.ObjectId(product.variantId),
-                                size: { 
-                                    $elemMatch: { 
+                                size: {
+                                    $elemMatch: {
                                         _id: new Types.ObjectId(product.sizeId),
                                         stock: { $gte: product.quantity }
-                                    } 
+                                    }
                                 }
                             }
                         }
@@ -305,7 +306,7 @@ export class OrderService {
                     subTotal - (createOrderWithoutLoginDTO.discountPercent / 100) * subTotal
                 )
             }
-            const { email, address, phone, note, paymentWay, discountPercent , firstName, lastName } = createOrderWithoutLoginDTO
+            const { email, address, phone, note, paymentWay, discountPercent, firstName, lastName } = createOrderWithoutLoginDTO
             const order = await this.orderRepository.create({
                 email,
                 address,
@@ -401,7 +402,18 @@ export class OrderService {
                 throw new BadRequestException("Order not found")
             }
             order.status = body.status
+
             await order.save()
+            if (order.email) {
+                emailEvent.emit("OrderStatus", { email: order.email, order, userName: order.firstName})
+            }
+            else {
+                const user = await this.userRepository.findOne({ _id: order.createdBy })
+                emailEvent.emit("OrderStatus", { email: user?.email, order, userName: user?.name })
+            }
+
+
+
             if (body.status === OrderStatus.cancelled) {
                 for (const product of order?.products as IorderProduct[]) {
                     await this.productRepository.updateOne(

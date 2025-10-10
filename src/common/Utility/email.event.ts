@@ -2,6 +2,7 @@
 import { EventEmitter } from "events";
 import { sendEmail } from "./sendEmail";
 import { orderEmailTemplate } from "./orderEmailTemplate";
+import { orderStatusTemplate } from "./orderStatusTemplate";
 
 
 export const emailEvent = new EventEmitter()
@@ -21,6 +22,12 @@ emailEvent.on("CreateOrder", async (data) => {
     
     const html = orderEmailTemplate(userName, order._id, order.finalPrice)
     await sendEmail({ to: email, subject: 'Order Created Successfully', html:html })
+})
+
+emailEvent.on("OrderStatus", async (data) => {
+    const { email, order, userName } = data
+    const html = orderStatusTemplate(userName, order._id, order.status)
+    await sendEmail({ to: email, subject: 'Order Status', html:html })
 })
 
 emailEvent.on("support", async (data) => {
