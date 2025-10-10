@@ -83,6 +83,10 @@ export class CreateProductDTO {
     @Type(() => Types.ObjectId)
     category: Types.ObjectId;
 
+    @IsMongoId()
+    @Type(() => Types.ObjectId)
+    subCategory: Types.ObjectId;
+
     @IsString()
     @IsOptional()
     discountType?: discountTypeEnum;
@@ -114,7 +118,7 @@ export class UpdateProductDTO {
     @IsNotEmpty()
     @IsOptional()
     descriptionArabic?: string;
-
+ 
     @IsString()
     @IsNotEmpty()
     @IsOptional()
@@ -133,6 +137,10 @@ export class UpdateProductDTO {
     @IsMongoId()
     @Type(() => Types.ObjectId)
     category?: Types.ObjectId;
+
+    @IsMongoId()
+    @Type(() => Types.ObjectId)
+    subCategory?: Types.ObjectId;
 
     @IsString()
     @IsOptional()

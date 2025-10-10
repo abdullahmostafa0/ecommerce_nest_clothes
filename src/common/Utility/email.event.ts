@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-misused-promises */
 import { EventEmitter } from "events";
 import { sendEmail } from "./sendEmail";
+import { orderEmailTemplate } from "./orderEmailTemplate";
 
 
 export const emailEvent = new EventEmitter()
@@ -16,8 +17,10 @@ emailEvent.on("resetPassword", async (data) => {
 })
 
 emailEvent.on("CreateOrder", async (data) => {
-    const { email, order } = data
-    await sendEmail({ to: email, subject: 'Order Created Successfully', html: `<h1></h1>` })
+    const { email, order, userName } = data
+    
+    const html = orderEmailTemplate(userName, order._id, order.finalPrice)
+    await sendEmail({ to: email, subject: 'Order Created Successfully', html:html })
 })
 
 emailEvent.on("support", async (data) => {

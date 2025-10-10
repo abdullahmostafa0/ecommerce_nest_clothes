@@ -16,6 +16,7 @@ import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import { Cache } from "cache-manager";
 import { CartRepository } from "src/DB/models/Cart/cart.repository";
 import { UserRepository } from "src/DB/models/User/user.repository";
+import { SubCategoryRepository } from "src/DB/models/SubCategory/subCategory.repository";
 @Injectable()
 export class ProductService {
     constructor(
@@ -24,7 +25,8 @@ export class ProductService {
         private readonly categoryRepository: CategoryRepository,
         private readonly cloudService: CloudService,
         private readonly cartRepository: CartRepository,
-        private readonly userRepository: UserRepository
+        private readonly userRepository: UserRepository,
+        private readonly subCategoryRepository: SubCategoryRepository
     ) { }
 
     async create(createProductDTO: CreateProductDTO, req: Request,
@@ -38,6 +40,7 @@ export class ProductService {
                 descriptionArabic,
                 price,
                 category,
+                subCategory,
                 discount,
                 discountType,
                 variants } = createProductDTO;
@@ -46,6 +49,13 @@ export class ProductService {
                 throw new NotFoundException("Category not found")
             }
             const categoryFolderId = categoryExist.folderId;
+
+            const subCategoryExist = await this.subCategoryRepository.findOne({ _id: subCategory })
+            if (!subCategoryExist) {
+                throw new NotFoundException("Sub category not found")
+            }
+            const subCategoryFolderId = subCategoryExist.folderId;
+
             const folderId = Math.ceil(Math.random() * 10000 + 9999).toString()
 
             let subImages: IImage[] = []
@@ -56,7 +66,7 @@ export class ProductService {
                 mainImage = await this.cloudService.uploadFile({
                     path: mainFile.path, // or use buffer if using memory storage
                     public_id: mainFile.originalname,
-                    folder: `${process.env.APP_NAME}/category/${categoryFolderId}/product/${folderId}`
+                    folder: `${process.env.APP_NAME}/category/${categoryFolderId}/subCategory/${subCategoryFolderId}/product/${folderId}`
                 })
             } else {
                 // mainImage is required by schema — throw or make it optional in schema
@@ -86,6 +96,7 @@ export class ProductService {
                 descriptionEnglish,
                 price,
                 category,
+                subCategory,
                 discount,
                 discountType,
                 variants: parsedVariants,
@@ -113,6 +124,7 @@ export class ProductService {
                 descriptionArabic,
                 price,
                 category,
+                subCategory,
                 discount,
                 discountType,
                 variants } = updateProductDTO;
@@ -129,7 +141,14 @@ export class ProductService {
                 }
                 categoryFolderId = categoryExist.folderId
             }
-
+            let subCategoryFolderId: string = ""
+            if (updateProductDTO.subCategory) {
+                const subCategoryExist = await this.subCategoryRepository.findOne({ _id: subCategory })
+                if (!subCategoryExist) {
+                    throw new NotFoundException("Sub category not found")
+                }
+                subCategoryFolderId = subCategoryExist.folderId
+            }
 
 
             let subImages: IImage[] = []
@@ -140,7 +159,7 @@ export class ProductService {
                 mainImage = await this.cloudService.uploadFile({
                     path: mainFile.path, // or use buffer if using memory storage
                     public_id: mainFile.originalname,
-                    folder: `${process.env.APP_NAME}/category/${categoryFolderId}/product/${product.folderId}`
+                    folder: `${process.env.APP_NAME}/category/${categoryFolderId}/subCategory/${subCategoryFolderId}/product/${product.folderId}`
                 })
             }
 

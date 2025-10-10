@@ -27,39 +27,26 @@ export const orderEmailTemplate = (
             <!-- Body -->
             <tr>
               <td style="padding:30px;">
-                <p style="font-size:16px; margin-bottom:20px;">Hi <strong>{{customerName}}</strong>,</p>
+                <p style="font-size:16px; margin-bottom:20px;">Hi <strong>${orderName}</strong>,</p>
                 <p style="font-size:16px; margin-bottom:20px;">
-                  We’re excited to let you know that your order <strong>#{{orderId}}</strong> has been successfully created!
+                  We’re excited to let you know that your order <strong>#${orderId}</strong> has been successfully created!
                 </p>
                 
-                <table width="100%" cellpadding="8" cellspacing="0" style="margin:20px 0; border:1px solid #efc2ab; border-radius:8px;">
-                  <tr style="background-color:#f7ede3;">
-                    <th align="left" style="font-size:14px;">Item</th>
-                    <th align="center" style="font-size:14px;">Qty</th>
-                    <th align="right" style="font-size:14px;">Price</th>
-                  </tr>
-                  {{#each orderItems}}
-                  <tr>
-                    <td>{{this.name}}</td>
-                    <td align="center">{{this.quantity}}</td>
-                    <td align="right">{{this.price}}</td>
-                  </tr>
-                  {{/each}}
-                </table>
+
                 
                 <p style="font-size:16px; text-align:right; margin-top:10px;">
-                  <strong>Total: ${finalPrice}</strong>
+                    <strong>Total: ${finalPrice}</strong>
                 </p>
 
                 <p style="font-size:15px; margin-top:30px;">
-                  You’ll receive another email once your order has been placed.  
-                  Thank you for shopping with us!
+                    You’ll receive another email once your order has been placed.  
+                    Thank you for shopping with us!
                 </p>
 
                 <div style="text-align:center; margin-top:30px;">
-                  <a href="{{orderLink}}" style="background-color:#4e4241; color:#f7ede3; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:bold; display:inline-block;">
+                    <a href="{{orderLink}}" style="background-color:#4e4241; color:#f7ede3; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:bold; display:inline-block;">
                     View Your Order
-                  </a>
+                    </a>
                 </div>
               </td>
             </tr>
@@ -67,7 +54,7 @@ export const orderEmailTemplate = (
             <!-- Footer -->
             <tr>
               <td align="center" style="background-color:#efc2ab; padding:15px; font-size:13px; color:#4e4241;">
-                © 2025 Your Company Name — All rights reserved.
+                © 2018 extra chic — All rights reserved.
               </td>
             </tr>
 

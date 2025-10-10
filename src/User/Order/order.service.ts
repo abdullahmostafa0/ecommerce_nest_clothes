@@ -13,9 +13,9 @@ import { CartService } from "../Cart/cart.service";
 import { Types } from "mongoose";
 import { PaymentService } from "src/common/service/payment.service";
 import Stripe from "stripe";
-import { RealtimeGateway } from "src/gateway/gateway";
 import { PaymobService } from "src/Payment/paymob.service";
 import { UserRepository } from "src/DB/models/User/user.repository";
+import { emailEvent } from "src/common/Utility/email.event";
 
 @Injectable()
 export class OrderService {
@@ -25,7 +25,6 @@ export class OrderService {
         private readonly orderRepository: OrderRepository,
         private readonly cartService: CartService,
         private readonly paymentService: PaymentService,
-        private readonly realtimeGateway: RealtimeGateway,
         private readonly userRepository: UserRepository,
         private readonly paymobService: PaymobService
     ) { }
@@ -39,7 +38,6 @@ export class OrderService {
 
             let subTotal: number = 0
             const products: IorderProduct[] = []
-            console.log(cart.products)
             for (const product of cart.products) {
                 const checkProduct = await this.productRepository.findOne(
                     {
@@ -56,7 +54,6 @@ export class OrderService {
                 if (!checkProduct) {
                     throw new BadRequestException("In-Valid Product or out of stock" + product.productId)
                 }
-                console.log(product.quantity)
                 products.push({
                     name: checkProduct.titleEnglish,
                     productId: checkProduct._id,
@@ -104,7 +101,9 @@ export class OrderService {
                     }
                 );
             }
-            
+            console.log(req["user"].email)
+            emailEvent.emit("CreateOrder", { email: req["user"].email, order, userName: req["user"].name })
+
             return { messaga: "Done" }
         } catch (error) {
             throw new InternalServerErrorException(error)
@@ -338,6 +337,7 @@ export class OrderService {
                     }
                 );
             }
+            emailEvent.emit("CreateOrder", { email: order.email, order, userName: order.firstName + " " + order.lastName })
             return order
         } catch (error) {
             throw new InternalServerErrorException(error)

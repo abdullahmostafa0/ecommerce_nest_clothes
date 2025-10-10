@@ -3,6 +3,7 @@ import { Document, HydratedDocument, SchemaTypes, Types } from "mongoose";
 import { Category, IImage } from "../Category/category.model";
 import slugify from "slugify";
 import { User } from "../User/user.model";
+import { SubCategory } from "../SubCategory/subCategory.model";
 
 export enum discountTypeEnum {
     FIXED_PRICE = "fixedPrice",
@@ -50,6 +51,9 @@ export class Product {
 
     @Prop({ type: SchemaTypes.ObjectId, required: true, ref: Category.name })
     category: Types.ObjectId;
+
+    @Prop({ type: SchemaTypes.ObjectId, required: true, ref: SubCategory.name })
+    subCategory: Types.ObjectId
 
     @Prop({ type: Number, required: true, min: 1 })
     price: number;

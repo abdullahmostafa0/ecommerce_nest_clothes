@@ -51,7 +51,6 @@ export class CartService {
                     break;
                 }
             }
-            console.log(addToCartDTO)
             if (!match) {
                 await this.cartRepository.updateOne({
                     _id: cart._id

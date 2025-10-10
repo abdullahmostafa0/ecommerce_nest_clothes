@@ -14,7 +14,7 @@ export async function sendEmail (sendMailOptoitn: nodemailer.SendMailOptions){
     });
 
     const info = await transporter.sendMail({
-        from: `'"abdudllah " <${process.env.EMAIL}>'`, // sender address
+        from: `extra chic <${process.env.EMAIL}>`, // sender address
         ...sendMailOptoitn,
     });
 

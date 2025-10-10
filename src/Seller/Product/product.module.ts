@@ -11,9 +11,11 @@ import { CartModel } from "src/DB/models/Cart/cart.model";
 import { CartRepository } from "src/DB/models/Cart/cart.repository";
 import { UserRepository } from "src/DB/models/User/user.repository";
 import { UserModel } from "src/DB/models/User/user.model";
+import { SubCategoryRepository } from "src/DB/models/SubCategory/subCategory.repository";
+import { SubCategoryModel } from "src/DB/models/SubCategory/subCategory.model";
 
 @Module({
-    imports: [ProductModel, CategoryModel, CartModel, UserModel],
+    imports: [ProductModel, CategoryModel, CartModel, UserModel, SubCategoryModel],
     controllers: [ProductController],
     providers: [
         ProductService,
@@ -22,7 +24,8 @@ import { UserModel } from "src/DB/models/User/user.model";
         CategoryService,
         CloudService,
         CartRepository,
-        UserRepository
+        UserRepository,
+        SubCategoryRepository
     ]
 })
 export class ProductModule { }

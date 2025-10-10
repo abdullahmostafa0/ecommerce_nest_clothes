@@ -9,7 +9,6 @@ import { OrderRepository } from "src/DB/models/Order/order.repository";
 import { ProductRepository } from "src/DB/models/Product/product.repository";
 import { CartService } from "../Cart/cart.service";
 import { PaymentService } from "src/common/service/payment.service";
-import { RealtimeGateway } from "src/gateway/gateway";
 import { UserModel } from "src/DB/models/User/user.model";
 import { UserRepository } from "src/DB/models/User/user.repository";
 import { PaymobModule } from "src/Payment/paymob.module";
@@ -24,7 +23,6 @@ import { PaymobModule } from "src/Payment/paymob.module";
         ProductRepository, 
         CartService,
         PaymentService,
-        RealtimeGateway,
         UserRepository,
     ],
 })
