@@ -11,8 +11,7 @@ export class Cart {
             productId: { type: Types.ObjectId, required: true, ref: 'Product' },
             variantId: { type: SchemaTypes.ObjectId, required: false },
             sizeId: { type: SchemaTypes.ObjectId, required: false },
-            variant : { size: [{ size: String, stock: { type: Number, default: 0, min: 0 } }],
-                color: String },
+            variant : { size: String, color: String },
             quantity: { type: Number, default: 1 },
         }]),
     )

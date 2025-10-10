@@ -42,7 +42,16 @@ export class OrderController {
         return await this.orderService.cancelWithoutLogin(params.orderId)
     }
 
-    
+    @Post(":orderId/paymob")
+    async paymob(@Req() req: Request, @Param() params: OrderIdDTO) {
+        return await this.orderService.checkOut(req, params.orderId)
+    }
+
+    @Public("public")
+    @Post(":orderId/paymobWithoutLogin")
+    async paymobWithoutLogin(@Param() params: OrderIdDTO) {
+        return await this.orderService.checkOutWithoutLogin(params.orderId)
+    }
 
     
 

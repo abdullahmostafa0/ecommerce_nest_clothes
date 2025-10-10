@@ -107,4 +107,8 @@ export abstract class DBService<T> {
         return await this.model.updateMany(filter, data);
     }
 
+    async aggregate(pipeline: any[]): Promise<any[]> {
+        return await this.model.aggregate(pipeline).exec();
+    }
+
 }

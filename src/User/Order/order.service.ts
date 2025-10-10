@@ -14,6 +14,7 @@ import { Types } from "mongoose";
 import { PaymentService } from "src/common/service/payment.service";
 import Stripe from "stripe";
 import { RealtimeGateway } from "src/gateway/gateway";
+import { PaymobService } from "src/Payment/paymob.service";
 import { UserRepository } from "src/DB/models/User/user.repository";
 
 @Injectable()
@@ -25,7 +26,8 @@ export class OrderService {
         private readonly cartService: CartService,
         private readonly paymentService: PaymentService,
         private readonly realtimeGateway: RealtimeGateway,
-        private readonly userRepository: UserRepository
+        private readonly userRepository: UserRepository,
+        private readonly paymobService: PaymobService
     ) { }
 
     async createOrder(createOrderDTO: CreateOrderDTO, req: Request) {
@@ -102,8 +104,7 @@ export class OrderService {
                     }
                 );
             }
-            const user = await this.userRepository.findOne({ _id: req["user"]._id })
-
+            
             return { messaga: "Done" }
         } catch (error) {
             throw new InternalServerErrorException(error)
@@ -112,52 +113,112 @@ export class OrderService {
     }
 
     async checkOut(req: Request, orderId: Types.ObjectId)
-        : Promise<Stripe.Response<Stripe.Checkout.Session>> {
+        : Promise<{ provider: string; url: string } | undefined> {
 
-        const order = await this.orderRepository.findOne({
-            _id: orderId,
-            createdBy: req["user"]._id,
-            status: OrderStatus.pending,
-            paymentWay: PaymentWay.card
-        })
-
-        if (!order) {
-            throw new BadRequestException("Order not found")
-        }
-        const discounts: { coupon: string }[] = [];
-        if (order.discountAmount) {
-            const coupon = await this.paymentService.createCoupon({
-                percent_off: order.discountAmount,
-                duration: "once"
+        try {
+            const order = await this.orderRepository.findOne({
+                _id: orderId,
+                createdBy: req["user"]._id,
+                status: OrderStatus.pending,
+                paymentWay: PaymentWay.card
             })
-            discounts.push({ coupon: coupon.id })
-        }
-        const session = await this.paymentService.checkoutSession({
-            customer_email: req["user"].email,
-            line_items: order.products.map((product) => {
-                return {
-                    quantity: product.quantity,
-                    price_data: {
-                        product_data: {
-                            name: product.name,
-                        },
-                        currency: "egp",
-                        unit_amount: product.unitPrice * 100
-                    },
-                }
-            }),
-            metadata: {
-                orderId: orderId as unknown as string
-            },
-            discounts
-        })
-        const intent = await this.paymentService.createPaymentIntent(order.finalPrice)
 
-        await this.orderRepository.updateOne(
-            { _id: order._id },
-            { intentId: intent.id }
-        )
-        return session
+            if (!order) {
+                throw new BadRequestException("Order not found")
+            }
+            // If you want to use Paymob for card payments instead of Stripe
+
+            const authToken = await this.paymobService.authenticate();
+
+            // Reuse existing Paymob order if present to avoid duplicate merchant_order_id
+            const amountCents = Math.round(order.finalPrice * 100);
+            const existingIntentId = (order as any).intentId as string | undefined;
+            const paymobOrderId = existingIntentId
+                ? Number(existingIntentId)
+                : await this.paymobService.registerOrder(
+                    authToken,
+                    `${String(orderId)}-${Date.now()}`,
+                    amountCents
+                );
+
+            const paymentToken = await this.paymobService.generatePaymentKey(
+                authToken,
+                amountCents,
+                paymobOrderId,
+                {
+                    email: req["user"].email,
+                    phone_number: order.phone,
+                    street: order.address || "NA",
+                    city: "",
+                    country: "EG",
+                    postal_code: "",
+                    state: "",
+                    first_name: (req["user"].name?.split(" ")[0]) || "User",
+                    last_name: (req["user"].name?.split(" ").slice(1).join(" ") || "NA"),
+                }
+            );
+            const url = this.paymobService.getIframeUrl(paymentToken);
+            if (!existingIntentId) {
+                await this.orderRepository.updateOne({ _id: order._id }, { intentId: String(paymobOrderId) });
+            }
+            return { provider: "paymob", url };
+
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+
+
+    }
+
+    async checkOutWithoutLogin(orderId: Types.ObjectId) {
+        try {
+            const order = await this.orderRepository.findOne({
+                _id: orderId,
+                status: OrderStatus.pending,
+                paymentWay: PaymentWay.card
+            })
+
+            if (!order) {
+                throw new BadRequestException("Order not found or not eligible for payment")
+            }
+
+            const authToken = await this.paymobService.authenticate();
+
+            // Reuse existing Paymob order if present to avoid duplicate merchant_order_id
+            const amountCents = Math.round(order.finalPrice * 100);
+            const existingIntentId = (order as any).intentId as string | undefined;
+            const paymobOrderId = existingIntentId
+                ? Number(existingIntentId)
+                : await this.paymobService.registerOrder(
+                    authToken,
+                    `${String(orderId)}-${Date.now()}`,
+                    amountCents
+                );
+
+            const paymentToken = await this.paymobService.generatePaymentKey(
+                authToken,
+                amountCents,
+                paymobOrderId,
+                {
+                    email: order.email as string,
+                    phone_number: order.phone as string,
+                    street: order.address || "NA",
+                    city: "",
+                    country: "EG",
+                    postal_code: "",
+                    state: "",
+                    first_name: order.firstName || "User",
+                    last_name: order.lastName || "",
+                }
+            );
+            const url = this.paymobService.getIframeUrl(paymentToken);
+            if (!existingIntentId) {
+                await this.orderRepository.updateOne({ _id: order._id }, { intentId: String(paymobOrderId) });
+            }
+            return { provider: "paymob", url };
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
     }
 
     async cancelOrder(req: Request, orderId: Types.ObjectId) {
@@ -212,17 +273,21 @@ export class OrderService {
             for (const product of createOrderWithoutLoginDTO.products) {
                 const checkProduct = await this.productRepository.findOne(
                     {
-                        _id: product.productId,
+                        _id: new Types.ObjectId(product.productId),
                         variants: {
                             $elemMatch: {
-                                _id: product.variantId,
-                                size: { $elemMatch: { _id: product.sizeId } },
-                                stock: { $gte: product.quantity }
+                                _id: new Types.ObjectId(product.variantId),
+                                size: { 
+                                    $elemMatch: { 
+                                        _id: new Types.ObjectId(product.sizeId),
+                                        stock: { $gte: product.quantity }
+                                    } 
+                                }
                             }
                         }
                     })
                 if (!checkProduct) {
-                    throw new BadRequestException("Product not found")
+                    throw new BadRequestException("Product not found or out of stock")
                 }
                 products.push({
                     name: checkProduct.titleEnglish,
@@ -241,7 +306,7 @@ export class OrderService {
                     subTotal - (createOrderWithoutLoginDTO.discountPercent / 100) * subTotal
                 )
             }
-            const { email, address, phone, note, paymentWay, discountPercent } = createOrderWithoutLoginDTO
+            const { email, address, phone, note, paymentWay, discountPercent , firstName, lastName } = createOrderWithoutLoginDTO
             const order = await this.orderRepository.create({
                 email,
                 address,
@@ -251,7 +316,9 @@ export class OrderService {
                 products,
                 subTotal,
                 finalPrice,
-                discountAmount: discountPercent
+                discountAmount: discountPercent,
+                firstName: firstName,
+                lastName: lastName
             })
 
             for (const product of products) {
@@ -291,9 +358,9 @@ export class OrderService {
             await this.productRepository.updateOne(
                 { _id: product.productId },
                 {
-                    $inc: { 
-                    "variants.$[v].size.$[s].stock": product.quantity,
-                    sellCount: -product.quantity
+                    $inc: {
+                        "variants.$[v].size.$[s].stock": product.quantity,
+                        sellCount: -product.quantity
                     }
                 },
                 {

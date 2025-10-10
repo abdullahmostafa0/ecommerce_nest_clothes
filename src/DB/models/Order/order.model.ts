@@ -7,6 +7,14 @@ import { IOrder, IorderProduct, OrderStatus, PaymentWay } from "src/User/Order/o
 
 @Schema({ timestamps: true })
 export class Order {
+
+    @Prop({ type: String, required: false })
+    firstName?: string;
+
+    @Prop({ type: String, required: false })
+    lastName?: string;
+
+
     @Prop({ type: String, required: true })
     address: string;
 
@@ -62,6 +70,9 @@ export class Order {
 
     @Prop({type: Number, required: true})
     finalPrice:number
+
+    @Prop({type: String, required: false})
+    intentId?: string;
 
 }
 

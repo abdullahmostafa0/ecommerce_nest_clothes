@@ -6,7 +6,7 @@ export interface ICartProduct {
     productId:Types.ObjectId;
     variantId:Types.ObjectId;
     sizeId:Types.ObjectId;
-    variant:IVariant;
+    variant: { size: string, color: string };
     quantity:number;
 }
 

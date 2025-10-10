@@ -9,4 +9,8 @@ export class OrderRepository extends DBService<typeOrder>{
     constructor(@InjectModel(Order.name) private readonly orderModel: Model<typeOrder>) {
         super(orderModel)
     }
+
+    async aggregate(pipeline: any[]): Promise<any[]> {
+        return await super.aggregate(pipeline);
+    }
 }

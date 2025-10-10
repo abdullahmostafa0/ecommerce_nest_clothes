@@ -84,6 +84,12 @@ export class CreateOrderWithoutLoginDTO {
     @Max(100)
     @IsOptional()
     discountPercent: number
+
+    @IsString()
+    firstName: string;
+
+    @IsString()
+    lastName: string;
 }
 
 export class UpdateStatusDTO {

@@ -15,7 +15,7 @@ emailEvent.on("resetPassword", async (data) => {
     await sendEmail({ to: email, subject: 'Reset Password', html: `<h1>please confirm your code : ${code}</h1>` })
 })
 
-emailEvent.on("order", async (data) => {
+emailEvent.on("CreateOrder", async (data) => {
     const { email, order } = data
     await sendEmail({ to: email, subject: 'Order Created Successfully', html: `<h1></h1>` })
 })

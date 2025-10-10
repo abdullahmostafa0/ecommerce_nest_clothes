@@ -12,9 +12,10 @@ import { PaymentService } from "src/common/service/payment.service";
 import { RealtimeGateway } from "src/gateway/gateway";
 import { UserModel } from "src/DB/models/User/user.model";
 import { UserRepository } from "src/DB/models/User/user.repository";
+import { PaymobModule } from "src/Payment/paymob.module";
 
 @Module({
-    imports:[CartModel, ProductModel, OrderModel, UserModel],
+    imports:[CartModel, ProductModel, OrderModel, UserModel, PaymobModule],
     controllers:[OrderController],
     providers:[
         OrderService,

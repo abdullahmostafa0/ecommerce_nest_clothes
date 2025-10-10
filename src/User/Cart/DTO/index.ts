@@ -18,19 +18,11 @@ export class CheckMongoIds implements ValidatorConstraintInterface {
         return 'In-Valid MongoId';
     }
 }
-export class ISize {
-    @IsString()
-    size: string;
-    @IsNumber()
-    @IsPositive()
-    stock: number;
-}
+
 export class variantDTO {
     
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => ISize)
-    size: ISize[];
+    @IsString()
+    size: string;
     @IsString()
     color: string;
 }
@@ -46,7 +38,7 @@ export class AddToCartDTO {
     @IsMongoId()
     sizeId: Types.ObjectId;
 
-    @ValidateNested({ each: true })
+    @ValidateNested()
     @Type(() => variantDTO)
     variant: variantDTO;
 

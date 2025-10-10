@@ -51,8 +51,15 @@ export class CartService {
                     break;
                 }
             }
+            console.log(addToCartDTO)
             if (!match) {
-                cart.products.push(addToCartDTO)
+                await this.cartRepository.updateOne({
+                    _id: cart._id
+                }, {
+                    $push: {
+                        products: addToCartDTO
+                    }
+                })
             }
             await cart.save()
             return { message: "Done" }
