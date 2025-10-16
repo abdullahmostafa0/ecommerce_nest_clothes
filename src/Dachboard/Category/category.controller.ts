@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Body, Controller, Delete, Get, InternalServerErrorException, Param, Post, Put, Query, Req, UploadedFile, UseGuards, UseInterceptors } from "@nestjs/common";
 import { Role } from "src/common/Decorator/role.decorator";
 import { AuthGuard } from "src/common/Guards/auth.guard";
 import { RoleGuard } from "src/common/Guards/role.guard";
@@ -23,13 +23,16 @@ export class CategoryController {
         @Req() req: Request,
         @UploadedFile() file: Express.Multer.File
     ) {
-
-        const category = await this.categoryService.create(
-            categoryDTO,
-            req["user"],
-            file
-        );
-        return {message:"Done", data:category}
+        try {
+            const category = await this.categoryService.create(
+                categoryDTO,
+                req["user"],
+                file
+            );
+            return {message:"Done", data:category}
+        } catch (error) {
+            throw new InternalServerErrorException(error);
+        }
     }
 
     @Put(":id")
@@ -39,32 +42,44 @@ export class CategoryController {
         @Body() updateCategoryDTO: UpdateCategorDTO,
         @Req() req: Request
     ) {
-        const category = await this.categoryService.update(
-            id,
-            updateCategoryDTO,
-            req
-        );
-        return {
-            message: "Done",
-            data:category
+        try {
+            const category = await this.categoryService.update(
+                id,
+                updateCategoryDTO,
+                req
+            );
+            return {
+                message: "Done",
+                data:category
+            }
+        } catch (error) {
+            throw new InternalServerErrorException(error);
         }
     }
     @Public("public")
     @Get()
     async getAll() {
-        const categories = await this.categoryService.getAll();
-        return {
-            message: "Done",
-            data: categories
+        try {
+            const categories = await this.categoryService.getAll();
+            return {
+                message: "Done",
+                data: categories
+            }
+        } catch (error) {
+            throw new InternalServerErrorException(error);
         }
     }
 
     @Delete(":id")
     async deleteCategroy(@Param("id") id: Types.ObjectId) {
-        const category = await this.categoryService.deleteCategory(id);
-        return {
-            message: "Done",
-            data: category
+        try {
+            const category = await this.categoryService.deleteCategory(id);
+            return {
+                message: "Done",
+                data: category
+            }
+        } catch (error) {
+            throw new InternalServerErrorException(error);
         }
     }
 }

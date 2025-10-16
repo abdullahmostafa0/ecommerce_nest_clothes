@@ -30,6 +30,10 @@ export class CreateOrderDTO implements IOrderInputs{
     @Max(100)
     @IsOptional()
     discountPercent: number
+
+    @IsMongoId()
+    @Type(() => Types.ObjectId)
+    shippingId: Types.ObjectId;
 }
 export class CartProductDTO {
     @IsMongoId()
@@ -79,11 +83,9 @@ export class CreateOrderWithoutLoginDTO {
     @IsEnum(PaymentWay)
     paymentWay: PaymentWay;
 
-    @IsNumber()
-    @IsPositive()
-    @Max(100)
-    @IsOptional()
-    discountPercent: number
+    @IsMongoId()
+    @Type(() => Types.ObjectId)
+    shippingId: Types.ObjectId;
 
     @IsString()
     firstName: string;

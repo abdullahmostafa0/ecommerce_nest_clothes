@@ -18,7 +18,8 @@ export class CreateCategoryDTO {
     nameEnglish: string
 
     @IsObject()
-    image: IImage
+    @IsOptional()
+    image?: IImage
 }
 
 

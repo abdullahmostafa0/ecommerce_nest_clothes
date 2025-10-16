@@ -17,22 +17,25 @@ export class AuthGuard implements CanActivate {
     ) { }
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
+        try {
+            const request = this.getRequest(context);
+            const authorization = this.getAuthorization(context)
 
-        const request = this.getRequest(context);
-        const authorization = this.getAuthorization(context)
-
-        const publicValue = this.reflector.getAllAndMerge(Public,
-            [
-                context.getHandler(),
-                context.getClass()
-            ]
-        )
-        if (publicValue[0] == 'public') {
-            return true
+            const publicValue = this.reflector.getAllAndMerge(Public,
+                [
+                    context.getHandler(),
+                    context.getClass()
+                ]
+            )
+            if (publicValue[0] == 'public') {
+                return true
+            }
+            const user = await this.tokenService.decodeToken(authorization)
+            request.user = user;
+            return true;
+        } catch (error) {
+            throw error;
         }
-        const user = await this.tokenService.decodeToken(authorization)
-        request.user = user;
-        return true;
     }
     private getAuthorization(context: ExecutionContext) {
         switch (context['contextType']) {

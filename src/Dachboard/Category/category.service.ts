@@ -28,11 +28,18 @@ export class CategoryService {
         image: Express.Multer.File)
         : Promise<typeCategory> {
         try {
+            
+            
             const { nameArabic, nameEnglish } = createCategoryDTO;
-            const categoryExist = await this.findOne({ nameArabic, nameEnglish });
-
-            if (categoryExist) {
-                throw new ConflictException("category already exist")
+            // Check if nameArabic already exists
+            const categoryExistArabic = await this.findOne({ nameArabic });
+            if (categoryExistArabic) {
+                throw new ConflictException("Category with this Arabic name already exists")
+            }
+            // Check if nameEnglish already exists
+            const categoryExistEnglish = await this.findOne({ nameEnglish });
+            if (categoryExistEnglish) {
+                throw new ConflictException("Category with this English name already exists")
             }
             /*
             const folderId = Math.ceil(Math.random() * 10000 + 9999).toString()
@@ -47,15 +54,14 @@ export class CategoryService {
                 nameArabic,
                 nameEnglish,
                 createdBy: user.id as Types.ObjectId,
-                image: {
-                    secure_url: createCategoryDTO.image?.secure_url,
-                    public_id: createCategoryDTO.image?.public_id
-                },
-                folderId: createCategoryDTO.image.folderId
+                image: createCategoryDTO.image ? {
+                    secure_url: createCategoryDTO.image.secure_url,
+                    public_id: createCategoryDTO.image.public_id
+                } : undefined,
+                folderId: createCategoryDTO.image?.folderId
 
             };
             const categoryCreated = await this.categoryRepository.create(category);
-
             return categoryCreated;
         } catch (error) {
             throw new InternalServerErrorException(error)
@@ -74,23 +80,51 @@ export class CategoryService {
                 throw new NotFoundException("category not found")
             }
             const { nameArabic, nameEnglish } = updateCategoryDTO
-            if (nameEnglish || nameArabic) {
-                const nameExist = await this.findOne({ nameEnglish, nameArabic })
-                if (nameExist) {
-                    throw new ConflictException("Category name already exist")
+            
+            // Check if nameArabic already exists (excluding current category)
+            if (nameArabic) {
+                const nameExistArabic = await this.findOne({ 
+                    nameArabic, 
+                    _id: { $ne: id } 
+                });
+                if (nameExistArabic) {
+                    throw new ConflictException("Category with this Arabic name already exists")
                 }
-
+            }
+            
+            // Check if nameEnglish already exists (excluding current category)
+            if (nameEnglish) {
+                const nameExistEnglish = await this.findOne({ 
+                    nameEnglish, 
+                    _id: { $ne: id } 
+                });
+                if (nameExistEnglish) {
+                    throw new ConflictException("Category with this English name already exists")
+                }
             }
             const { file } = req
             if (file) {
-                const { secure_url } = await this.cloudService.uploadFile(
-                    {
-                        path: file.path,
-                        public_id: category.image.public_id,
-                    }
-                )
-                category.image.secure_url = secure_url
+                if (category.image?.public_id) {
+                    const { secure_url } = await this.cloudService.uploadFile(
+                        {
+                            path: file.path,
+                            public_id: category.image.public_id,
+                        }
+                    )
+                    category.image.secure_url = secure_url
+                } else {
+                    // If no existing image, create new one
+                    const { secure_url, public_id } = await this.cloudService.uploadFile(
+                        {
+                            path: file.path,
+                            public_id: file.originalname,
+                        }
+                    )
+                    category.image = { secure_url, public_id }
+                }
             }
+            category.nameArabic = nameArabic || category.nameArabic
+            category.nameEnglish = nameEnglish || category.nameEnglish
             return await category.save()
         } catch (error) {
             throw new InternalServerErrorException(error)

@@ -17,6 +17,7 @@ import { PaymobService } from "src/Payment/paymob.service";
 import { UserRepository } from "src/DB/models/User/user.repository";
 import { emailEvent } from "src/common/Utility/email.event";
 import { emit } from "process";
+import { ShippingRepository } from "src/DB/models/Shipping/shipping.repository";
 
 @Injectable()
 export class OrderService {
@@ -27,7 +28,8 @@ export class OrderService {
         private readonly cartService: CartService,
         private readonly paymentService: PaymentService,
         private readonly userRepository: UserRepository,
-        private readonly paymobService: PaymobService
+        private readonly paymobService: PaymobService,
+        private readonly shippingRepository: ShippingRepository
     ) { }
 
     async createOrder(createOrderDTO: CreateOrderDTO, req: Request) {
@@ -66,12 +68,13 @@ export class OrderService {
                 })
                 subTotal += checkProduct.finalPrice * product.quantity
             }
-            let finalPrice = subTotal
-            if (createOrderDTO.discountPercent) {
-                finalPrice = Math.floor(
-                    subTotal - (createOrderDTO.discountPercent / 100) * subTotal
-                )
+            const shipping = await this.shippingRepository.findOne({ _id: createOrderDTO.shippingId })
+            if (!shipping) {
+                throw new BadRequestException("Shipping not found")
             }
+            subTotal += shipping.price
+            let finalPrice = subTotal
+            
 
             const order = await this.orderRepository.create({
                 ...createOrderDTO,
@@ -300,13 +303,14 @@ export class OrderService {
                 })
                 subTotal += checkProduct.finalPrice * product.quantity
             }
-            let finalPrice = subTotal
-            if (createOrderWithoutLoginDTO.discountPercent) {
-                finalPrice = Math.floor(
-                    subTotal - (createOrderWithoutLoginDTO.discountPercent / 100) * subTotal
-                )
+            const shipping = await this.shippingRepository.findOne({ _id: createOrderWithoutLoginDTO.shippingId })
+            if (!shipping) {
+                throw new BadRequestException("Shipping not found")
             }
-            const { email, address, phone, note, paymentWay, discountPercent, firstName, lastName } = createOrderWithoutLoginDTO
+            subTotal += shipping.price
+            let finalPrice = subTotal
+            
+            const { email, address, phone, note, paymentWay, firstName, lastName } = createOrderWithoutLoginDTO
             const order = await this.orderRepository.create({
                 email,
                 address,
@@ -316,7 +320,6 @@ export class OrderService {
                 products,
                 subTotal,
                 finalPrice,
-                discountAmount: discountPercent,
                 firstName: firstName,
                 lastName: lastName
             })

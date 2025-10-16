@@ -10,7 +10,7 @@ import { Public } from "src/common/Decorator/public.decorator";
 
 @UsePipes(new ValidationPipe({ whitelist: true }))
 @Controller("order")
-@Role(["user"])
+@Role(["user", "superAdmin"])
 @UseGuards(AuthGuard, RoleGuard)
 export class OrderController {
     constructor(private readonly orderService: OrderService) { }

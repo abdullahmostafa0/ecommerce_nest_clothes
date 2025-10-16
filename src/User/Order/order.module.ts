@@ -12,9 +12,11 @@ import { PaymentService } from "src/common/service/payment.service";
 import { UserModel } from "src/DB/models/User/user.model";
 import { UserRepository } from "src/DB/models/User/user.repository";
 import { PaymobModule } from "src/Payment/paymob.module";
+import { ShippingRepository } from "src/DB/models/Shipping/shipping.repository";
+import { ShippingModel } from "src/DB/models/Shipping/shipping.model";
 
 @Module({
-    imports:[CartModel, ProductModel, OrderModel, UserModel, PaymobModule],
+    imports:[CartModel, ProductModel, OrderModel, UserModel, PaymobModule, ShippingModel],
     controllers:[OrderController],
     providers:[
         OrderService,
@@ -24,6 +26,7 @@ import { PaymobModule } from "src/Payment/paymob.module";
         CartService,
         PaymentService,
         UserRepository,
+        ShippingRepository,
     ],
 })
 export class OrderModule {}

@@ -7,7 +7,7 @@ import { AddToCartDTO, ItemIdsDTO } from "./DTO";
 import { Request } from "express";
 
 @Controller("user/cart")
-@Role(["user"])
+@Role(["user", "superAdmin"])
 @UseGuards(AuthGuard, RoleGuard)
 export class CartController {
     constructor(private readonly cartService: CartService) { }

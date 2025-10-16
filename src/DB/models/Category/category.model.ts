@@ -4,11 +4,14 @@ import slugify from "slugify";
 
 export interface IImage {
     secure_url: string,
-    public_id: string
+    public_id: string,
+    folderId?: string
 }
 
 @Schema({ timestamps: true })
 export class Category {
+    
+
     @Prop({ type: String, unique: true, trim: true, required: true })
     nameArabic: string;
 
@@ -16,7 +19,7 @@ export class Category {
     nameEnglish: string;
     
 
-    @Prop({ type: { secure_url: String, public_id: String } })
+    @Prop({ type: { secure_url: String, public_id: String, folderId: String } })
     image: IImage;
 
     @Prop({ type: SchemaTypes.ObjectId, ref: 'User', required: true })
