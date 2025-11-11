@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException, UnauthorizedException } from "@nestjs/common";
-import { JwtService, JwtSignOptions } from "@nestjs/jwt";
+import { JwtService, JwtSignOptions, JwtVerifyOptions } from "@nestjs/jwt";
 import { UserRepository } from "src/DB/models/User/user.repository";
 export const tokenTypes = {
     access: 'access',
@@ -17,7 +17,7 @@ export class TokenService {
             options
         )
     }
-    verify(token: string, options: JwtSignOptions) {
+    verify(token: string, options?: JwtVerifyOptions) {
         return this.jwtService.verify(token, options)
     }
     async decodeToken(authorization: string) {
