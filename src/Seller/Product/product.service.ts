@@ -219,42 +219,36 @@ export class ProductService {
         message: string,
         data: productType[] | [] | IPaginate<productType>
     }> {
-        let cacheName = 'products'
-        if (Object.keys(query)?.length) {
-            cacheName = JSON.stringify(query)
-        }
-        const cachedData = await this.cacheManager.get(cacheName)
-        if (cachedData) {
-            return { message: 'Done-Cached', data: JSON.parse(cachedData as string) }
-        }
-
-
-
-        let filter: FilterQuery<productType> = {}
-        if (query.name) {
-            filter = {
-                $or: [
-                    { name: { $regex: `${query.name}`, $options: 'i' } },
-                ]
+        try {
+            let filter: FilterQuery<productType> = {}
+            if (query.name) {
+                filter = {
+                    $or: [
+                        { name: { $regex: `${query.name}`, $options: 'i' } },
+                    ]
+                }
             }
-        }
-        if (query.maxPrice || query.minPrice) {
-            const max = query.maxPrice ? { $lte: query.maxPrice } : {}
-            filter.finalPrice = {
-                $gte: query.minPrice || 0, ...max
+            if (query.maxPrice || query.minPrice) {
+                const max = query.maxPrice ? { $lte: query.maxPrice } : {}
+                filter.finalPrice = {
+                    $gte: query.minPrice || 0, ...max
+                }
             }
+
+            const products = await this.productRepository.findAll({
+                filter,
+                sort: query.sort,
+                page: query.page,
+                select: query.select,
+                population: [{ path: "createdBy" }]
+            })
+
+            return { message: "Done", data: products };
+        }
+        catch (error) {
+            throw new InternalServerErrorException(error)
         }
 
-        const products = await this.productRepository.findAll({
-            filter,
-            sort: query.sort,
-            page: query.page,
-            select: query.select,
-            population: [{ path: "createdBy" }]
-        })
-        await this.cacheManager.set(cacheName, JSON.stringify(products))
-
-        return { message: "Done", data: products };
     }
 
     async all(): Promise<productType[] | [] | IPaginate<productType>> {

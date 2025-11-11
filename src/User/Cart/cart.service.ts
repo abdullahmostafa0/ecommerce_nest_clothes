@@ -18,6 +18,7 @@ export class CartService {
             const productId = new Types.ObjectId(addToCartDTO.productId as any);
             const variantId = new Types.ObjectId(addToCartDTO.variantId as any);
             const sizeId = new Types.ObjectId(addToCartDTO.sizeId as any);
+            const quantity = addToCartDTO.quantity;
 
             const product = await this.productRepository.findOne(
                 {
@@ -25,7 +26,7 @@ export class CartService {
                     variants: {
                         $elemMatch: {
                             _id: variantId,
-                            size: { $elemMatch: { _id: sizeId } },
+                            size: { $elemMatch: { _id: sizeId, stock: { $gte: quantity }}},
                         },
                     }
                 }
@@ -45,7 +46,10 @@ export class CartService {
             }
             let match = false
             for (const [index, product] of cart.products.entries()) {
-                if (product.productId.toString() === addToCartDTO.productId.toString()) {
+                if (product.productId.toString() === addToCartDTO.productId.toString()
+                    && product.variantId.toString() === addToCartDTO.variantId.toString()
+                    && product.sizeId.toString() === addToCartDTO.sizeId.toString()
+                ) {
                     cart.products[index].quantity = addToCartDTO.quantity
                     match = true
                     break;

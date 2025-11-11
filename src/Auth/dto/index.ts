@@ -71,10 +71,9 @@ export class signupDTO {
     @MaxLength(1000)
     address: string;
 
-    @Matches(/^(002|\+2)?01[0125][0-9]{8}$/)
+    @Matches(/^01[0125][0-9]{8}$/)
     phone: string;
 
-    @IsStrongPassword()
     @IsNotEmpty()
     @IsEqualTo('password', { message: 'Confirm password must match password' })
     confirmPassword: string;
@@ -88,7 +87,6 @@ export class signinDTO {
     email: string;
 
 
-    @IsStrongPassword()
     @IsNotEmpty()
     password: string;
 
@@ -136,7 +134,6 @@ export class resetPasswordDTO {
 
     
 
-    @IsStrongPassword()
     @IsNotEmpty()
     password: string;
 
