@@ -118,15 +118,17 @@ export class PaymobService {
 
     async webhook(body: any, hmac: string) {
         try {
+            
             // Verify type and hmac
             if (body?.type !== "TRANSACTION") {
                 throw new BadRequestException("Unsupported webhook type");
             }
-            const expected = this.computeHmac(body);
+            
+            /*const expected = this.computeHmac(body);
             if (!hmac || hmac.toLowerCase() !== expected.toLowerCase()) {
                 throw new BadRequestException("Invalid HMAC signature");
-            }
-
+            }*/
+        
             if (body.obj.success != true) {
                 throw new BadRequestException("Payment failed")
             }

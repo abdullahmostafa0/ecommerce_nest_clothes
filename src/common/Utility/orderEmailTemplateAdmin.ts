@@ -1,16 +1,20 @@
 import { Types } from "mongoose"
-import { OrderStatus } from "src/User/Order/order.interface"
+import { OrderStatus, PaymentWay } from "src/User/Order/order.interface"
 
-export const orderStatusTemplate = (
+export const orderEmailTemplateAdmin = (
     orderName: string,
+    customerEmail: string,
     orderId: Types.ObjectId,
-    status: OrderStatus) => {
+    finalPrice: number,
+    paymentMethod: PaymentWay,
+    status: OrderStatus,
+    ) => {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Order Status Update</title>
+  <title>New Order Notification</title>
   <style>
     body {
       margin: 0;
@@ -21,7 +25,7 @@ export const orderStatusTemplate = (
     }
     .email-container {
       max-width: 600px;
-      margin: 0 auto;
+      margin: 20px auto;
       background-color: #ffffff;
       border-radius: 10px;
       overflow: hidden;
@@ -29,35 +33,36 @@ export const orderStatusTemplate = (
     }
     .header {
       background-color: #efc2ab;
+      padding: 25px 20px;
       text-align: center;
-      padding: 30px 20px;
     }
     .header h1 {
       margin: 0;
       color: #4e4241;
-      font-size: 24px;
+      font-size: 22px;
       font-weight: bold;
     }
     .content {
-      padding: 30px 25px;
-      line-height: 1.6;
+      padding: 25px;
       background-color: #f7ede3;
+      line-height: 1.6;
     }
     .content h2 {
-      font-size: 20px;
+      margin-top: 0;
+      font-size: 18px;
       color: #4e4241;
-      margin-bottom: 10px;
     }
-    .content p {
-      font-size: 16px;
-      margin: 0 0 20px;
-    }
-    .order-summary {
+    .order-details {
       background-color: #ffffff;
       padding: 15px;
       border-radius: 8px;
       border: 1px solid #efc2ab;
+      margin-top: 10px;
       margin-bottom: 20px;
+    }
+    .order-details p {
+      margin: 5px 0;
+      font-size: 15px;
     }
     .button {
       display: inline-block;
@@ -70,36 +75,36 @@ export const orderStatusTemplate = (
     }
     .footer {
       text-align: center;
-      padding: 20px;
-      font-size: 13px;
-      color: #4e4241;
       background-color: #efc2ab;
+      color: #4e4241;
+      padding: 15px;
+      font-size: 13px;
     }
   </style>
 </head>
 <body>
   <div class="email-container">
     <div class="header">
-      <h1>Order Status Update</h1>
+      <h1>New Order Created</h1>
     </div>
     <div class="content">
-      <h2>Hello ${orderName},</h2>
-      <p>
-        We wanted to let you know that your order <strong>#${orderId}</strong> is now
-        <strong>${status}</strong>.
-      </p>
+      <h2>Hello Admin,</h2>
+      <p>A new order has been successfully created by a user. Below are the order details:</p>
 
+      <div class="order-details">
+        <p><strong>User Name:</strong> ${orderName}</p>
+        <p><strong>User Email:</strong> ${customerEmail}</p>
+        <p><strong>Order ID:</strong> ${orderId}</p>
+        <p><strong>Total Amount:</strong> ${finalPrice}</p>
+        <p><strong>Payment Method:</strong> ${paymentMethod}</p>
+        <p><strong>Status:</strong> ${status}</p>
+      </div>
 
-      <p>
-        You can track your order or view more details by clicking the button below:
-      </p>
-      <p style="text-align: center;">
-        <a href="[Tracking Link]" class="button">View Order</a>
-      </p>
-      <p>Thank you for shopping with us!</p>
+      <p>You can review the order and take further action from your admin dashboard.</p>
+      
     </div>
     <div class="footer">
-      <p>&copy; 2018 extra chic All rights reserved.</p>
+      <p>© 2018 Extra Chic. All rights reserved.</p>
     </div>
   </div>
 </body>

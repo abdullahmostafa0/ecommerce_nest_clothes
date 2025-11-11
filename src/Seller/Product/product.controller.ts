@@ -54,13 +54,13 @@ export class ProductController {
 
     @Public("public")
     @Get()
-    @CacheTTL(20)
     async findAll(
         @Query() productFilterDTO: ProductFilterDTO,
     ) {
         return await this.productService.findAll(productFilterDTO)
     }
-    @UseInterceptors(CacheInterceptor)
+
+    @Public("public")
     @Get("all")
     async all() {
         const products = await this.productService.all()

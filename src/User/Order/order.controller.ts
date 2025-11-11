@@ -10,7 +10,7 @@ import { Public } from "src/common/Decorator/public.decorator";
 
 @UsePipes(new ValidationPipe({ whitelist: true }))
 @Controller("order")
-@Role(["user", "superAdmin"])
+@Role(["user", "superAdmin", "admin"])
 @UseGuards(AuthGuard, RoleGuard)
 export class OrderController {
     constructor(private readonly orderService: OrderService) { }
@@ -36,11 +36,7 @@ export class OrderController {
             order
         }
     }
-    @Public("public")
-    @Patch(":orderId/cancelWithoutLogin")
-    async cancelWithoutLogin(@Param() params: OrderIdDTO) {
-        return await this.orderService.cancelWithoutLogin(params.orderId)
-    }
+    
 
     @Post(":orderId/paymob")
     async paymob(@Req() req: Request, @Param() params: OrderIdDTO) {
@@ -74,6 +70,7 @@ export class OrderController {
     async updateStatus(@Param() params: OrderIdDTO, @Body() body: UpdateStatusDTO) {
         return await this.orderService.updateStatus(params.orderId, body)
     }
+
 
     @Get("get-orders-by-user")
     async getOrderByUser(@Req() req: Request) {

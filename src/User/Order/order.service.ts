@@ -105,10 +105,9 @@ export class OrderService {
                     }
                 );
             }
-            console.log(req["user"].email)
             emailEvent.emit("CreateOrder", { email: req["user"].email, order, userName: req["user"].name })
-
-            return { messaga: "Done" }
+            emailEvent.emit("CreateOrderAdmin", { email: process.env.EMAIL, order, userName: req["user"].name, customerEmail: req["user"].email })
+            return { order }
         } catch (error) {
             throw new InternalServerErrorException(error)
         }
@@ -225,6 +224,7 @@ export class OrderService {
     }
 
     async cancelOrder(req: Request, orderId: Types.ObjectId) {
+        
 
         const order = await this.orderRepository.findOne({
             _id: orderId,
@@ -342,48 +342,13 @@ export class OrderService {
                 );
             }
             emailEvent.emit("CreateOrder", { email: order.email, order, userName: order.firstName + " " + order.lastName })
+            emailEvent.emit("CreateOrderAdmin", { email: process.env.EMAIL, order, userName: order.firstName + " " + order.lastName, customerEmail: order.email })
             return order
         } catch (error) {
             throw new InternalServerErrorException(error)
         }
     }
-    async cancelWithoutLogin(orderId: Types.ObjectId) {
-        const order = await this.orderRepository.findOne({
-            _id: orderId,
-            $or: [
-                { status: OrderStatus.pending },
-                { status: OrderStatus.placed }
-            ],
-        })
-        if (!order) {
-            throw new BadRequestException("Order not found")
-        }
-        for (const product of order?.products as IorderProduct[]) {
-            await this.productRepository.updateOne(
-                { _id: product.productId },
-                {
-                    $inc: {
-                        "variants.$[v].size.$[s].stock": product.quantity,
-                        sellCount: -product.quantity
-                    }
-                },
-                {
-                    arrayFilters: [
-                        { "v._id": product.variantId },
-                        { "s._id": product.sizeId }
-                    ]
-                }
-            );
-        }
-
-        await this.orderRepository.updateOne(
-            { _id: orderId },
-            {
-                status: OrderStatus.cancelled
-            }
-        )
-        return { message: "Done" }
-    }
+    
     async getOrderByUser(req: Request) {
         const orders = await this.orderRepository.findAll({ filter: { createdBy: req["user"]._id } })
         return orders
@@ -391,7 +356,8 @@ export class OrderService {
 
     async getAllOrders() {
         try {
-            const orders = await this.orderRepository.findAll({ filter: {} })
+            const orders = await this.orderRepository.findAll({ filter: {}, 
+                population: [{ path: "createdBy" }] })
             return orders
         } catch (error) {
             throw new InternalServerErrorException(error)

@@ -8,8 +8,10 @@ export class PaymobController {
     constructor(private readonly paymobService: PaymobService) {}
     @Public("public")
     @Post("webhook")
-    async webhook(@Req() req: Request, @Body() body: any, @Query("hmac") hmac?: string) {
-        await this.paymobService.webhook(req.body, hmac || "");
+    async webhook(@Req() req: Request, @Query("hmac") hmac?: string) {
+        // Parse the raw buffer body as JSON
+        const body = JSON.parse(req.body.toString());
+        await this.paymobService.webhook(body, hmac || "");
         return { ok: true };
     }
 }
