@@ -82,7 +82,8 @@ export class OrderService {
                 discountAmount: createOrderDTO.discountPercent,
                 products,
                 createdBy: req["user"]._id,
-                finalPrice
+                finalPrice,
+                shippingId: createOrderDTO.shippingId
             })
             await this.cartService.clearCart(req)
 
@@ -321,7 +322,8 @@ export class OrderService {
                 subTotal,
                 finalPrice,
                 firstName: firstName,
-                lastName: lastName
+                lastName: lastName,
+                shippingId: createOrderWithoutLoginDTO.shippingId
             })
 
             for (const product of products) {
@@ -350,14 +352,15 @@ export class OrderService {
     }
     
     async getOrderByUser(req: Request) {
-        const orders = await this.orderRepository.findAll({ filter: { createdBy: req["user"]._id } })
+        const orders = await this.orderRepository.findAll({ filter: { createdBy: req["user"]._id },
+            population: [{ path: "shippingId" }] })
         return orders
     }
 
     async getAllOrders() {
         try {
             const orders = await this.orderRepository.findAll({ filter: {}, 
-                population: [{ path: "createdBy" }] })
+                population: [{ path: "createdBy" }, { path: "shippingId" }] })
             return orders
         } catch (error) {
             throw new InternalServerErrorException(error)

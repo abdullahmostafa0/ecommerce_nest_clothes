@@ -74,6 +74,9 @@ export class Order {
     @Prop({type: String, required: false})
     intentId?: string;
 
+    @Prop({type: Types.ObjectId, ref:"Shipping", required: true})
+    shippingId: Types.ObjectId;
+
 }
 
 const orderSchema = SchemaFactory.createForClass(Order)
