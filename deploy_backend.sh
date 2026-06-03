@@ -1,33 +1,55 @@
 #!/usr/bin/env bash
-# Deploys the NestJS backend to the remote server.
-# Requires sshpass (installed locally via brew).
+# ------------------------------------------------------------
+# Deploy NestJS backend to production (https://www.extrachic.cloud/)
+# ------------------------------------------------------------
 
+# Remote server configuration
 HOST="72.61.192.168"
-USER="root"
-PASS="Mo@1234567891234"
+USER="deploy"               # non‑root deployment user
 REMOTE_DIR="/var/www/extrachic/backend"
+
+# Local project directory (assumes script is run from repo root)
 LOCAL_DIR="$(pwd)"
 
-# 1. Sync files (exclude node_modules, .git, and local env files)
-sshpass -p "$PASS" rsync -az --delete \
+# -------------------------------------------------------------------
+# 1️⃣ Ensure SSH key is available (uses the default key generated on this host)
+# -------------------------------------------------------------------
+SSH_KEY="/Users/maryem/.ssh/id_ed25519"
+if [[ ! -f "$SSH_KEY" ]]; then
+  echo "SSH key not found at $SSH_KEY – generating a new one..."
+  ssh-keygen -t ed25519 -f "$SSH_KEY" -N ""
+fi
+
+# -------------------------------------------------------------------
+# 2️⃣ Sync source code to the remote host (exclude heavy dirs)
+# -------------------------------------------------------------------
+rsync -avz -e "ssh -i $SSH_KEY -o StrictHostKeyChecking=no" \
   --exclude "node_modules" \
   --exclude ".git" \
-  --exclude ".env*" \
-  "$LOCAL_DIR/" "$USER@$HOST:$REMOTE_DIR"
+  --exclude "dist" \
+  "$LOCAL_DIR/" "$USER@$HOST:$REMOTE_DIR/"
 
-# 2. Install dependencies & build on the remote host
-sshpass -p "$PASS" ssh -o StrictHostKeyChecking=no "$USER@$HOST" <<'EOF'
+# -------------------------------------------------------------------
+# 3️⃣ Remote install, build, and restart
+# -------------------------------------------------------------------
+ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no "$USER@$HOST" bash <<'EOS'
+  set -e
   cd "$REMOTE_DIR"
-  npm ci
-  npm run build
-  # Restart the app (adjust if you use pm2 or systemd)
-  if command -v pm2 >/dev/null 2>&1; then
-    pm2 restart "ecommerce_nest" || pm2 start dist/main.js --name "ecommerce_nest"
-  else
-    # Simple fallback: kill old node process and start a new one
-    pkill -f "node dist/main.js" || true
-    nohup node dist/main.js > out.log 2>&1 &
-  fi
-EOF
 
-echo "✅ Backend deployed successfully."
+  # Install production dependencies only
+  npm ci --only=production
+
+  # Build the NestJS app (produces dist/main.js)
+  npm run build
+
+  # Restart the service – adjust to your process manager
+  if command -v pm2 >/dev/null; then
+    pm2 reload ecosystem.config.js --env production || pm2 start dist/main.js --name extrachic-backend
+  else
+    # Fallback: kill any previous node process and start a new one in background
+    pkill -f "node dist/main.js" || true
+    nohup node dist/main.js > backend.log 2>&1 &
+  fi
+EOS
+
+echo "✅ Deployment completed successfully."
