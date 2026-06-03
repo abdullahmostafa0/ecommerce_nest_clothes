@@ -74,8 +74,8 @@ export class Order {
     @Prop({type: String, required: false})
     intentId?: string;
 
-    @Prop({type: Types.ObjectId, ref:"Shipping", required: true})
-    shippingId: Types.ObjectId;
+    @Prop({type: Types.ObjectId, ref:"Shipping", required: false})
+    shippingId?: Types.ObjectId;
 
 }
 

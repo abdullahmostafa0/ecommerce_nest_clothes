@@ -214,3 +214,9 @@ export class EditVariantDTO {
     @IsString()
     color: string;
 }
+export class AddSizeToVariantDTO {
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => SizeDTO)
+    size: SizeDTO[];
+}

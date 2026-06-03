@@ -54,5 +54,23 @@ export class UserController {
             user
         }
     }
+    @Role(["admin", "superAdmin"])
+    @Get("all-user")
+    async getAllUser(@Req() req: Request) {
+        const user = await this.userService.getAllUser(req)
+        return {
+            message: 'Done',
+            user
+        }
+    }
+    @Role(["admin", "superAdmin"])
+    @Get("user-by-id/:id")
+    async getUserById(@Param("id") id: Types.ObjectId) {
+        const user = await this.userService.getUserById(id)
+        return {
+            message: 'Done',
+            user
+        }
+    }
     
 }

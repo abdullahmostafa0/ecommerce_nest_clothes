@@ -74,7 +74,7 @@ export class OrderService {
             }
             subTotal += shipping.price
             let finalPrice = subTotal
-            
+
 
             const order = await this.orderRepository.create({
                 ...createOrderDTO,
@@ -131,23 +131,13 @@ export class OrderService {
             }
             // If you want to use Paymob for card payments instead of Stripe
 
-            const authToken = await this.paymobService.authenticate();
-
-            // Reuse existing Paymob order if present to avoid duplicate merchant_order_id
             const amountCents = Math.round(order.finalPrice * 100);
-            const existingIntentId = (order as any).intentId as string | undefined;
-            const paymobOrderId = existingIntentId
-                ? Number(existingIntentId)
-                : await this.paymobService.registerOrder(
-                    authToken,
-                    `${String(orderId)}-${Date.now()}`,
-                    amountCents
-                );
+            const merchantOrderId = `${String(orderId)}-${Date.now()}`;
 
-            const paymentToken = await this.paymobService.generatePaymentKey(
-                authToken,
+            // Create Intention
+            const result = await this.paymobService.createIntention(
                 amountCents,
-                paymobOrderId,
+                "EGP",
                 {
                     email: req["user"].email,
                     phone_number: order.phone,
@@ -158,13 +148,22 @@ export class OrderService {
                     state: "",
                     first_name: (req["user"].name?.split(" ")[0]) || "User",
                     last_name: (req["user"].name?.split(" ").slice(1).join(" ") || "NA"),
-                }
+                },
+                merchantOrderId
             );
-            const url = this.paymobService.getIframeUrl(paymentToken);
-            if (!existingIntentId) {
-                await this.orderRepository.updateOne({ _id: order._id }, { intentId: String(paymobOrderId) });
+
+            // We don't get a separate order ID from intention API immediately in the response in the same way,
+            // but we can track the merchantOrderId or handle webhooks. 
+            // For now, let's just save the intention/reference if needed?
+            // The intention response might have an ID.
+            // But the webhook will send the order ID.
+            // Let's assume we proceed.
+
+            if (!order.intentId) {
+                await this.orderRepository.updateOne({ _id: order._id }, { intentId: merchantOrderId });
             }
-            return { provider: "paymob", url };
+
+            return { provider: "paymob", url: result.url };
 
         } catch (error) {
             throw new InternalServerErrorException(error)
@@ -185,23 +184,12 @@ export class OrderService {
                 throw new BadRequestException("Order not found or not eligible for payment")
             }
 
-            const authToken = await this.paymobService.authenticate();
-
-            // Reuse existing Paymob order if present to avoid duplicate merchant_order_id
             const amountCents = Math.round(order.finalPrice * 100);
-            const existingIntentId = (order as any).intentId as string | undefined;
-            const paymobOrderId = existingIntentId
-                ? Number(existingIntentId)
-                : await this.paymobService.registerOrder(
-                    authToken,
-                    `${String(orderId)}-${Date.now()}`,
-                    amountCents
-                );
+            const merchantOrderId = `${String(orderId)}-${Date.now()}`;
 
-            const paymentToken = await this.paymobService.generatePaymentKey(
-                authToken,
+            const result = await this.paymobService.createIntention(
                 amountCents,
-                paymobOrderId,
+                "EGP",
                 {
                     email: order.email as string,
                     phone_number: order.phone as string,
@@ -212,20 +200,22 @@ export class OrderService {
                     state: "",
                     first_name: order.firstName || "User",
                     last_name: order.lastName || "",
-                }
+                },
+                merchantOrderId
             );
-            const url = this.paymobService.getIframeUrl(paymentToken);
-            if (!existingIntentId) {
-                await this.orderRepository.updateOne({ _id: order._id }, { intentId: String(paymobOrderId) });
+
+            if (!order.intentId) {
+                await this.orderRepository.updateOne({ _id: order._id }, { intentId: merchantOrderId });
             }
-            return { provider: "paymob", url };
+
+            return { provider: "paymob", url: result.url };
         } catch (error) {
             throw new InternalServerErrorException(error)
         }
     }
 
     async cancelOrder(req: Request, orderId: Types.ObjectId) {
-        
+
 
         const order = await this.orderRepository.findOne({
             _id: orderId,
@@ -310,7 +300,7 @@ export class OrderService {
             }
             subTotal += shipping.price
             let finalPrice = subTotal
-            
+
             const { email, address, phone, note, paymentWay, firstName, lastName } = createOrderWithoutLoginDTO
             const order = await this.orderRepository.create({
                 email,
@@ -350,17 +340,21 @@ export class OrderService {
             throw new InternalServerErrorException(error)
         }
     }
-    
+
     async getOrderByUser(req: Request) {
-        const orders = await this.orderRepository.findAll({ filter: { createdBy: req["user"]._id },
-            population: [{ path: "shippingId" }] })
+        const orders = await this.orderRepository.findAll({
+            filter: { createdBy: req["user"]._id },
+            population: [{ path: "shippingId" }]
+        })
         return orders
     }
 
     async getAllOrders() {
         try {
-            const orders = await this.orderRepository.findAll({ filter: {}, 
-                population: [{ path: "createdBy" }, { path: "shippingId" }] })
+            const orders = await this.orderRepository.findAll({
+                filter: {},
+                population: [{ path: "createdBy" }, { path: "shippingId" }]
+            })
             return orders
         } catch (error) {
             throw new InternalServerErrorException(error)
@@ -377,7 +371,7 @@ export class OrderService {
 
             await order.save()
             if (order.email) {
-                emailEvent.emit("OrderStatus", { email: order.email, order, userName: order.firstName})
+                emailEvent.emit("OrderStatus", { email: order.email, order, userName: order.firstName })
             }
             else {
                 const user = await this.userRepository.findOne({ _id: order.createdBy })

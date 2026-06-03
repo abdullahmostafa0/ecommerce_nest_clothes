@@ -14,32 +14,27 @@ export class CloudInterceptor implements NestInterceptor {
         const file = request.file as Express.Multer.File;
         if (file) {
             try {
-                const folderId = Math.ceil(Math.random() * 10000 + 9999).toString()
-
-                const { secure_url, public_id } = await this.cloudService.uploadFile(
-                    {
-                        path: file.path,
-                        folder: folderId
-                    })
-                request.body.image = { secure_url, public_id, folderId }
+                const { secure_url, public_id } = await this.cloudService.uploadFile({
+                    path: file.path,
+                })
+                request.body.image = { secure_url, public_id }
             } catch (error) {
-                console.error('Error uploading file to cloud:', error);
+                console.error('Error saving file:', error);
                 throw error;
             }
         }
         return next.handle().pipe(
-            catchError(async (err)=>{
+            catchError(async (err) => {
                 try {
-                    if (request.body.image?.folderId) {
-                        await this.cloudService.deleteFolder(request.body.image.folderId)
+                    if (request.body.image?.public_id) {
+                        await this.cloudService.deleteFile(request.body.image.public_id)
                     }
                 } catch (deleteError) {
-                    console.error('Error deleting folder:', deleteError)
+                    console.error('Error deleting file:', deleteError)
                 }
-                return throwError(()=>err)
+                return throwError(() => err)
             })
         )
     }
-
 }
 

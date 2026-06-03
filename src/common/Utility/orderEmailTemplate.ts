@@ -43,11 +43,7 @@ export const orderEmailTemplate = (
                     Thank you for shopping with us!
                 </p>
 
-                <div style="text-align:center; margin-top:30px;">
-                    <a href="{{orderLink}}" style="background-color:#4e4241; color:#f7ede3; text-decoration:none; padding:12px 24px; border-radius:8px; font-weight:bold; display:inline-block;">
-                    View Your Order
-                    </a>
-                </div>
+                
               </td>
             </tr>
 

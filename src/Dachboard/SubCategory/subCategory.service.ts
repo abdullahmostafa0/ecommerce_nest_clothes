@@ -65,13 +65,20 @@ export class SubCategoryService {
             if (!subCategory) {
                 throw new NotFoundException("Sub category not found")
             }
+            // Delete old image from disk if a new one was uploaded
+            if (body.image?.public_id && subCategory.image?.public_id) {
+                await this.cloudService.deleteFile(subCategory.image.public_id)
+            }
+
             const subCategoryUpdated = await this.subCategoryRepository.updateOne({ _id: id }, {
                 nameArabic,
                 nameEnglish,
-                image: {
-                    secure_url: body.image?.secure_url,
-                    public_id: body.image?.public_id
-                },
+                ...(body.image ? {
+                    image: {
+                        secure_url: body.image.secure_url,
+                        public_id: body.image.public_id
+                    }
+                } : {}),
                 updatedBy: req["user"]._id as Types.ObjectId
             })
 

@@ -1,5 +1,6 @@
 import { Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { Types, UpdateWriteOpResult } from "mongoose";
+import { IPaginate } from "src/DB/db.service";
 import { ProductRepository } from "src/DB/models/Product/product.repository";
 import { TypeUser } from "src/DB/models/User/user.model";
 import { UserRepository } from "src/DB/models/User/user.repository";
@@ -76,6 +77,30 @@ export class UserService {
             if (error instanceof NotFoundException) {
                 throw error;
             }
+            throw new InternalServerErrorException(error)
+        }
+    }
+
+    async getAllUser(req: Request): Promise <[] | any[] | IPaginate<any>> {
+        try {
+
+            const updated = await this.userRepository.findAll({})
+            if (!updated) {
+                throw new NotFoundException("Users not found")
+            }
+            return updated;
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+    }
+
+    async getUserById(id: Types.ObjectId): Promise<TypeUser | null> {
+        try {
+            const updated = await this.userRepository.findOne(
+                { _id: id }, undefined, undefined, [{ path: "favorites" }]
+            )
+            return updated;
+        } catch (error) {
             throw new InternalServerErrorException(error)
         }
     }

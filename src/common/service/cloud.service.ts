@@ -1,50 +1,68 @@
 import { Injectable } from "@nestjs/common";
-import cloudinary from "../config/cloud.config";
 import { IImage } from "src/DB/models/Category/category.model";
+import { existsSync, unlinkSync } from "fs";
+import { join } from "path";
+
 interface IUploadFileOptions {
     path: string,
     public_id?: string,
     folder?: string
 }
+
 @Injectable()
 export class CloudService {
-    async uploadFile({ path, public_id, folder }: IUploadFileOptions) {
-        return await cloudinary.uploader.upload(path, { folder, public_id })
+    private getRelativeUrl(filePath: string): string {
+        const cwd = process.cwd().replace(/\\/g, '/')
+        const normalized = filePath.replace(/\\/g, '/')
+        if (normalized.startsWith(cwd)) {
+            const relative = normalized.substring(cwd.length) // e.g. /uploads/images/file.jpg
+            // Prefix with /api so it goes through the Nginx proxy
+            return '/api' + relative
+        }
+        return '/api' + normalized
     }
 
-    async uploadFiles(files: Express.Multer.File[], folder: string) {
-        const image: IImage[] = []
+    async uploadFile({ path }: IUploadFileOptions): Promise<{ secure_url: string; public_id: string }> {
+        const relativeUrl = this.getRelativeUrl(path)
+        return {
+            secure_url: relativeUrl,
+            public_id: relativeUrl
+        }
+    }
+
+    async uploadFiles(files: Express.Multer.File[], folder: string): Promise<IImage[]> {
+        const images: IImage[] = []
         for (const file of files) {
-            const { secure_url, public_id } = await this.uploadFile({
-                path: file.path,
-                public_id: file.originalname,
-                folder
-            })
-            image.push({
-                secure_url,
-                public_id
-            })
+            const { secure_url, public_id } = await this.uploadFile({ path: file.path })
+            images.push({ secure_url, public_id })
         }
-        return image
-    }
-    async deleteFile(public_id: string) {
-        return await cloudinary.uploader.destroy(public_id)
+        return images
     }
 
-    async deleteFiles(public_id: string[]) {
-        for(let i = 0; i < public_id.length; i++) {
-            await this.deleteFile(public_id[i])
+    async deleteFile(publicId: string): Promise<void> {
+        try {
+            // Strip /api prefix if present (public_id stored as /api/uploads/...)
+            const cleanId = publicId.startsWith('/api/') ? publicId.substring(4) : publicId
+            const fullPath = join(process.cwd(), cleanId)
+            if (existsSync(fullPath)) {
+                unlinkSync(fullPath)
+            }
+        } catch (error) {
+            console.error('Error deleting file:', error)
         }
     }
-    
 
-    async deleteFolderResource(path: string) {
-        return await cloudinary.api.delete_resources_by_prefix(path)
+    async deleteFiles(publicIds: string[]): Promise<void> {
+        for (const id of publicIds) {
+            await this.deleteFile(id)
+        }
     }
 
-    async deleteFolder(path: string)
-    {
-        await this.deleteFolderResource(path)
-        return await cloudinary.api.delete_folder(path)
+    async deleteFolderResource(path: string): Promise<void> {
+        // No-op for local storage
+    }
+
+    async deleteFolder(path: string): Promise<void> {
+        // No-op for local storage
     }
 }

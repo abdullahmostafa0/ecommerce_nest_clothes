@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UploadedFiles, UseGuards, UseInterceptors } from "@nestjs/common";
 import { ProductService } from "./product.service";
-import { AddVariantDTO, CreateProductDTO, EditVariantDTO, ProductFilterDTO, ProductIdDTO, UpdateProductDTO } from "./DTO";
+import { AddSizeToVariantDTO, AddVariantDTO, CreateProductDTO, EditVariantDTO, ProductFilterDTO, ProductIdDTO, UpdateProductDTO } from "./DTO";
 import { FileFieldsInterceptor, FilesInterceptor } from "@nestjs/platform-express";
 import { multerOptions } from "src/common/Utility/multer";
 import { Request } from "express";
@@ -20,7 +20,7 @@ export class ProductController {
     @Post()
     @UseInterceptors(FileFieldsInterceptor([
         { name: 'mainImage', maxCount: 1 },
-        { name: 'subImages', maxCount: 6 }
+        { name: 'subImages', maxCount: 8 }
     ] ,multerOptions()))
     async create(
         @Body() createProductDTO: CreateProductDTO,
@@ -37,7 +37,7 @@ export class ProductController {
     @Patch(":productId")
     @UseInterceptors(FileFieldsInterceptor([
         { name: 'mainImage', maxCount: 1 },
-        { name: 'subImages', maxCount: 6 }
+        { name: 'subImages', maxCount: 8 }
     ] ,multerOptions()))
     async update(
         @Body() updateProductDTO: UpdateProductDTO,
@@ -45,7 +45,7 @@ export class ProductController {
         @Param() params: ProductIdDTO,
         @UploadedFiles() files: { mainImage?: Express.Multer.File[], subImages?: Express.Multer.File[] }
     ) {
-        const product = await this.productService.update(updateProductDTO, req, params.productId)
+        const product = await this.productService.update(updateProductDTO, req, params.productId, files)
         return {
             message: 'Product updated successfully',
             product
@@ -100,10 +100,44 @@ export class ProductController {
         }
     }
 
+    @Delete(":productId/deleteVariant/:variantId")
+    async deleteVariant(
+        @Param("productId") productId: Types.ObjectId,
+        @Param("variantId") variantId: Types.ObjectId) {
+        const product = await this.productService.deleteVariant(productId, variantId)
+        return {
+            message: 'Done',
+            product
+        }
+    }
+
+    @Delete("deleteSizeOfVariant/:productId/:variantId/:sizeId")
+    async deleteSizeOfVariant(
+        @Param("productId") productId: Types.ObjectId,
+        @Param("variantId") variantId: Types.ObjectId,
+        @Param("sizeId") sizeId: Types.ObjectId) {
+        const product = await this.productService.deleteSizeOfVariant(productId, variantId, sizeId)
+        return {
+            message : "Done"
+        }
+    }
+
+    @Post("addSizeToVariant/:productId/:variantId")
+    async addSizeToVariant(
+        @Param("productId") productId: Types.ObjectId,
+        @Param("variantId") variantId: Types.ObjectId,
+        @Body() addSizeToVariantDTO: AddSizeToVariantDTO) {
+        const product = await this.productService.addSizeToVariant(productId, variantId, addSizeToVariantDTO)
+        return {
+            message: 'Done',
+            product
+        }
+    }
     
 
     @Public("public")
     @Get("best-selling")
+
     async getBestSelling() {
         const products = await this.productService.getBestSelling()
         return {

@@ -93,9 +93,7 @@ export const orderStatusTemplate = (
       <p>
         You can track your order or view more details by clicking the button below:
       </p>
-      <p style="text-align: center;">
-        <a href="[Tracking Link]" class="button">View Order</a>
-      </p>
+      
       <p>Thank you for shopping with us!</p>
     </div>
     <div class="footer">

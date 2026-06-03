@@ -104,24 +104,14 @@ export class CategoryService {
             }
             const { file } = req
             if (file) {
+                // Delete old file from disk if it exists
                 if (category.image?.public_id) {
-                    const { secure_url } = await this.cloudService.uploadFile(
-                        {
-                            path: file.path,
-                            public_id: category.image.public_id,
-                        }
-                    )
-                    category.image.secure_url = secure_url
-                } else {
-                    // If no existing image, create new one
-                    const { secure_url, public_id } = await this.cloudService.uploadFile(
-                        {
-                            path: file.path,
-                            public_id: file.originalname,
-                        }
-                    )
-                    category.image = { secure_url, public_id }
+                    await this.cloudService.deleteFile(category.image.public_id)
                 }
+                const { secure_url, public_id } = await this.cloudService.uploadFile({
+                    path: file.path,
+                })
+                category.image = { secure_url, public_id }
             }
             category.nameArabic = nameArabic || category.nameArabic
             category.nameEnglish = nameEnglish || category.nameEnglish

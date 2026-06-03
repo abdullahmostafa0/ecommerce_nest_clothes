@@ -2,7 +2,7 @@
 import { BadRequestException, Inject, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { CloudService } from "src/common/service/cloud.service";
 import { ProductRepository } from "src/DB/models/Product/product.repository";
-import { AddVariantDTO, CreateProductDTO, EditVariantDTO, ProductFilterDTO, UpdateProductDTO } from "./DTO";
+import { AddSizeToVariantDTO, AddVariantDTO, CreateProductDTO, EditVariantDTO, ProductFilterDTO, UpdateProductDTO } from "./DTO";
 import { Request } from "express";
 import { CategoryService } from "src/Dachboard/Category/category.service";
 import { IImage } from "src/DB/models/Category/category.model";
@@ -48,39 +48,25 @@ export class ProductService {
             if (!categoryExist) {
                 throw new NotFoundException("Category not found")
             }
-            const categoryFolderId = categoryExist.folderId;
 
             const subCategoryExist = await this.subCategoryRepository.findOne({ _id: subCategory })
             if (!subCategoryExist) {
                 throw new NotFoundException("Sub category not found")
             }
-            const subCategoryFolderId = subCategoryExist.folderId;
-
-            const folderId = Math.ceil(Math.random() * 10000 + 9999).toString()
 
             let subImages: IImage[] = []
             let mainImage: IImage
-            //console.log(req.files)
             const mainFile = files?.mainImage?.[0]
             if (mainFile) {
-                mainImage = await this.cloudService.uploadFile({
-                    path: mainFile.path, // or use buffer if using memory storage
-                    public_id: mainFile.originalname,
-                    folder: `${process.env.APP_NAME}/category/${categoryFolderId}/subCategory/${subCategoryFolderId}/product/${folderId}`
-                })
+                mainImage = await this.cloudService.uploadFile({ path: mainFile.path })
             } else {
-                // mainImage is required by schema — throw or make it optional in schema
                 throw new BadRequestException('mainImage file is required')
             }
 
             // handle subImages (optional)
             if (files?.subImages?.length) {
                 for (const f of files.subImages) {
-                    const uploaded = await this.cloudService.uploadFile({
-                        path: f.path,
-                        public_id: f.originalname,
-                        folder: `${process.env.APP_NAME}/category/${categoryFolderId}/product/${folderId}`
-                    })
+                    const uploaded = await this.cloudService.uploadFile({ path: f.path })
                     subImages.push(uploaded)
                 }
             }
@@ -102,7 +88,6 @@ export class ProductService {
                 variants: parsedVariants,
                 subImages,
                 mainImage,
-                folderId,
                 createdBy: req["user"]._id as Types.ObjectId,
                 updatedBy: req["user"]._id as Types.ObjectId,
             })
@@ -133,47 +118,36 @@ export class ProductService {
             if (!product) {
                 throw new NotFoundException("Product not found")
             }
-            let categoryFolderId: string = ""
             if (updateProductDTO.category) {
                 const categoryExist = await this.categoryRepository.findOne({ _id: category })
                 if (!categoryExist) {
                     throw new NotFoundException("Category not found")
                 }
-                categoryFolderId = categoryExist.folderId
             }
-            let subCategoryFolderId: string = ""
             if (updateProductDTO.subCategory) {
                 const subCategoryExist = await this.subCategoryRepository.findOne({ _id: subCategory })
                 if (!subCategoryExist) {
                     throw new NotFoundException("Sub category not found")
                 }
-                subCategoryFolderId = subCategoryExist.folderId
             }
-
 
             let subImages: IImage[] = []
             let mainImage: IImage = product.mainImage
-            //console.log(req.files)
             const mainFile = files?.mainImage?.[0]
             if (mainFile) {
-                mainImage = await this.cloudService.uploadFile({
-                    path: mainFile.path, // or use buffer if using memory storage
-                    public_id: mainFile.originalname,
-                    folder: `${process.env.APP_NAME}/category/${categoryFolderId}/subCategory/${subCategoryFolderId}/product/${product.folderId}`
-                })
+                mainImage = await this.cloudService.uploadFile({ path: mainFile.path })
             }
 
             // handle subImages 
             if (files?.subImages?.length) {
                 for (const f of files.subImages) {
-                    const uploaded = await this.cloudService.uploadFile({
-                        path: f.path,
-                        public_id: f.originalname,
-                        folder: `${process.env.APP_NAME}/category/${categoryFolderId}/product/${product.folderId}`
-                    })
+                    const uploaded = await this.cloudService.uploadFile({ path: f.path })
                     subImages.push(uploaded)
                 }
             }
+
+            
+
             let finalPrice: number = product.finalPrice
 
             if (price || discount) {
@@ -351,6 +325,83 @@ export class ProductService {
         }
 
     }
+    async deleteVariant(id: Types.ObjectId, variantId: Types.ObjectId) {
+        try {
+            const product = await this.productRepository.findOne({ _id: id })
+            if (!product) {
+                throw new NotFoundException("Product not found")
+            }
+            const variant = product.variants.find(
+                (variant) => variant._id?.toString() === variantId.toString())
+            if (!variant) {
+                throw new NotFoundException("Variant not found")
+            }
+            await product.save()
+            await this.productRepository.updateOne({ _id: id },
+                {
+                    $pull: {
+                        variants: { _id: variantId }
+                    }
+                }
+            )
+            return product
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+    }
+    async deleteSizeOfVariant(id: Types.ObjectId, variantId: Types.ObjectId, sizeId: Types.ObjectId) {
+        try {
+            const product = await this.productRepository.findOne({ _id: id })
+            if (!product) {
+                throw new NotFoundException("Product not found")
+            }
+            const variant = product.variants.find(
+                (variant) => variant._id?.toString() === variantId.toString())
+            if (!variant) {
+                throw new NotFoundException("Variant not found")
+            }
+            const size = variant.size?.find(
+                (size) => size._id?.toString() === sizeId.toString())
+            if (!size) {
+                throw new NotFoundException("Size not found")
+            }
+            await product.save()
+            await this.productRepository.updateOne({ _id: id },
+                {
+                    $pull: {
+                        "variants.$[v].size": { _id: sizeId }
+                    }
+                },
+                {
+                    arrayFilters: [
+                        { "v._id": variantId }
+                    ]
+                }
+            )
+            return product
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+    }
+    async addSizeToVariant(id: Types.ObjectId, variantId: Types.ObjectId, addSizeToVariantDTO: AddSizeToVariantDTO) {
+        try {
+            const product = await this.productRepository.findOne({ _id: id })
+            if (!product) {
+                throw new NotFoundException("Product not found")
+            }
+            const variant = product.variants.find(
+                (variant) => variant._id?.toString() === variantId.toString())
+            if (!variant) {
+                throw new NotFoundException("Variant not found")
+            }
+            variant.size?.push(...addSizeToVariantDTO.size)
+            await product.save()
+            return product
+        } catch (error) {
+            throw new InternalServerErrorException(error)
+        }
+    }
+    
     async getProduct(id: Types.ObjectId) {
         const product = await this.productRepository.findOne({ _id: id })
         if (!product) {
