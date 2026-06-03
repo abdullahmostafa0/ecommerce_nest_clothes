@@ -1,5 +1,8 @@
 /*  */
 
+import { config } from 'dotenv';
+import { existsSync } from 'fs';
+import { resolve } from 'path';
 import { Module } from '@nestjs/common';
 import { AuthModule } from './Auth/auth.module';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -11,12 +14,23 @@ import { ShippingModule } from './Shipping/shipping.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { createKeyv } from '@keyv/redis';
 import { AppController } from './app.controller';
-console.log(process.env.DB_URL)
+
+const configPath = existsSync(resolve('config/.env')) ? resolve('config/.env') : resolve('.env');
+config({ path: configPath });
+
+const databaseUrl = process.env.DB_MODE === 'local'
+  ? process.env.DB_URL_LOCAL
+  : process.env.DB_URL;
+
+if (!databaseUrl) {
+  throw new Error('Missing database connection string. Set DB_URL or DB_URL_LOCAL in the backend environment.');
+}
+
 @Module({
   controllers :[AppController],
   imports: [
     AuthModule, 
-    MongooseModule.forRoot(process.env.DB_URL as string),
+    MongooseModule.forRoot(databaseUrl),
     CacheModule.registerAsync({
       useFactory: async () => {
         return {

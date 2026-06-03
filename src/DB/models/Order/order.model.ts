@@ -61,6 +61,7 @@ export class Order {
         quantity:{type: Number, required: true},
         variantId:{type: Types.ObjectId, required: true},
         sizeId:{type: Types.ObjectId, required: true},
+        variant:{ color: { type: String, required: false }, size: { type: String, required: false } },
         finalPrice:{type: Number, default: function (this: IorderProduct) {
             return this.quantity * this.unitPrice;
         }, }
@@ -76,6 +77,9 @@ export class Order {
 
     @Prop({type: Types.ObjectId, ref:"Shipping", required: false})
     shippingId?: Types.ObjectId;
+
+    @Prop({ type: Number, required: false, default: 0 })
+    deposit?: number;
 
 }
 

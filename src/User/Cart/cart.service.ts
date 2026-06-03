@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { AddToCartDTO, ItemIdsDTO } from "./DTO";
 import { ProductRepository } from "src/DB/models/Product/product.repository";
 import { CartRepository } from "src/DB/models/Cart/cart.repository";
@@ -16,17 +16,21 @@ export class CartService {
     async addToCart(addToCartDTO: AddToCartDTO, req: Request) {
         try {
             const productId = new Types.ObjectId(addToCartDTO.productId as any);
-            const variantId = new Types.ObjectId(addToCartDTO.variantId as any);
-            const sizeId = new Types.ObjectId(addToCartDTO.sizeId as any);
             const quantity = addToCartDTO.quantity;
+            const variantColor = addToCartDTO.variant?.color;
+            const variantSize = addToCartDTO.variant?.size;
+
+            if (!variantColor || !variantSize) {
+                throw new BadRequestException("Variant color and size are required");
+            }
 
             const product = await this.productRepository.findOne(
                 {
                     _id: productId,
                     variants: {
                         $elemMatch: {
-                            _id: variantId,
-                            size: { $elemMatch: { _id: sizeId, stock: { $gte: quantity }}},
+                            color: variantColor,
+                            size: { $elemMatch: { size: variantSize, stock: { $gte: quantity }}},
                         },
                     }
                 }
@@ -67,6 +71,9 @@ export class CartService {
             await cart.save()
             return { message: "Done" }
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
 
@@ -89,6 +96,9 @@ export class CartService {
             )
             return { message: "Done" }
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
 
@@ -106,6 +116,9 @@ export class CartService {
             )
             return { message: "Done" }
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
 
@@ -122,6 +135,9 @@ export class CartService {
 
             return cart
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
 

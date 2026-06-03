@@ -24,6 +24,10 @@ export interface IorderProduct {
     productId:Types.ObjectId,
     variantId:Types.ObjectId,
     sizeId:Types.ObjectId,
+    variant?: {
+        color: string,
+        size: string,
+    },
     quantity:number,
     unitPrice:number,
     finalPrice:number,
@@ -53,6 +57,7 @@ export interface IOrder extends IOrderInputs {
     discountAmount?:number,
     finalPrice:number,
     intentId?: string,
+    deposit?: number,
     updatedAt:Date,
     createdAt:Date
 }

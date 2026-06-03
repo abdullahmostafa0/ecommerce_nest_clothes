@@ -1,4 +1,4 @@
-import { IsArray, IsEmail, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, MaxLength, MinLength, ValidateNested } from "class-validator";
+import { IsArray, IsEmail, IsEnum, IsMongoId, IsNotEmpty, IsNumber, IsOptional, IsPositive, IsString, Matches, Max, MaxLength, MinLength, ValidateNested, Min } from "class-validator";
 import { IOrderInputs, OrderStatus, PaymentWay } from "../order.interface";
 import { ICartProduct } from "src/User/Cart/cart.interface";
 import { Type } from "class-transformer";
@@ -30,11 +30,21 @@ export class CreateOrderDTO implements IOrderInputs{
     @Max(100)
     @IsOptional()
     discountPercent: number
+ 
 
     @IsMongoId()
     @Type(() => Types.ObjectId)
     shippingId: Types.ObjectId;
 }
+
+export class CartVariantDTO {
+    @IsString()
+    color: string;
+
+    @IsString()
+    size: string;
+}
+
 export class CartProductDTO {
     @IsMongoId()
     @Type(() => Types.ObjectId)
@@ -51,6 +61,11 @@ export class CartProductDTO {
     @IsNumber()
     @IsPositive()
     quantity: number;
+
+    @ValidateNested()
+    @Type(() => CartVariantDTO)
+    @IsOptional()
+    variant?: CartVariantDTO;
     
 }
 export class CreateOrderWithoutLoginDTO {
@@ -97,4 +112,10 @@ export class CreateOrderWithoutLoginDTO {
 export class UpdateStatusDTO {
     @IsEnum(OrderStatus)
     status: OrderStatus;
+}
+
+export class UpdateDepositDTO {
+    @IsNumber()
+    @Min(0)
+    deposit: number;
 }
