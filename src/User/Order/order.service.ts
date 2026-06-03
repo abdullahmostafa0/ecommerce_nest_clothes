@@ -1,9 +1,9 @@
 /* eslint-disable no-unsafe-optional-chaining */
 /*  */
 /*  */
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { BadRequestException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { CartRepository } from "src/DB/models/Cart/cart.repository";
-import { CreateOrderDTO, CreateOrderWithoutLoginDTO, UpdateStatusDTO } from "./DTO";
+import { CreateOrderDTO, CreateOrderWithoutLoginDTO, UpdateStatusDTO, UpdateDepositDTO } from "./DTO";
 import { Request } from "express";
 import { IorderProduct, OrderIdDTO, OrderStatus, PaymentWay } from "./order.interface";
 import { ProductRepository } from "src/DB/models/Product/product.repository";
@@ -32,36 +32,57 @@ export class OrderService {
         private readonly shippingRepository: ShippingRepository
     ) { }
 
+    private getSelection(product: { variant?: { color?: string; size?: string } }, fallback?: { color?: string; size?: string }) {
+        const color = product.variant?.color || fallback?.color;
+        const size = product.variant?.size || fallback?.size;
+        if (!color || !size) {
+            throw new BadRequestException("Variant color and size are required");
+        }
+        return { color, size };
+    }
+
+    private buildProductFilter(productId: Types.ObjectId, selection: { color: string; size: string }, quantity: number) {
+        return {
+            _id: productId,
+            variants: {
+                $elemMatch: {
+                    color: selection.color,
+                    size: { $elemMatch: { size: selection.size, stock: { $gte: quantity } } },
+                },
+            },
+        };
+    }
+
+    private buildArrayFilters(selection: { color: string; size: string }, quantity: number) {
+        return [
+            { "v.color": selection.color },
+            { "s.size": selection.size, "s.stock": { $gte: quantity } }
+        ];
+    }
+
     async createOrder(createOrderDTO: CreateOrderDTO, req: Request) {
         try {
             const cart = await this.cartRepository.findOne({ createdBy: req["user"]._id })
             if (!cart?.products?.length) {
-                return new NotFoundException("Cart Empty")
+                throw new NotFoundException("Cart Empty")
             }
 
             let subTotal: number = 0
             const products: IorderProduct[] = []
             for (const product of cart.products) {
+                const selection = this.getSelection(product as any, product.variant);
                 const checkProduct = await this.productRepository.findOne(
-                    {
-                        _id: product.productId,
-                        variants: {
-                            $elemMatch: {
-                                _id: product.variantId,
-                                size: { $elemMatch: { _id: product.sizeId } },
-                            }
-                        }
-
-                    }
+                    this.buildProductFilter(new Types.ObjectId(product.productId as any), selection, product.quantity)
                 )
                 if (!checkProduct) {
-                    throw new BadRequestException("In-Valid Product or out of stock" + product.productId)
+                    throw new BadRequestException(`In-Valid Product or out of stock ${product.productId}`)
                 }
                 products.push({
                     name: checkProduct.titleEnglish,
                     productId: checkProduct._id,
                     variantId: product.variantId,
                     sizeId: product.sizeId,
+                    variant: selection,
                     quantity: product.quantity,
                     unitPrice: checkProduct.finalPrice,
                     finalPrice: checkProduct.finalPrice * product.quantity
@@ -88,6 +109,7 @@ export class OrderService {
             await this.cartService.clearCart(req)
 
             for (const product of products) {
+                const selection = product.variant as { color: string; size: string };
                 await this.productRepository.updateOne(
                     { _id: product.productId },
                     {
@@ -99,10 +121,7 @@ export class OrderService {
 
                     },
                     {
-                        arrayFilters: [
-                            { "v._id": product.variantId },
-                            { "s._id": product.sizeId, "s.stock": { $gte: product.quantity } }
-                        ]
+                        arrayFilters: this.buildArrayFilters(selection, product.quantity)
                     }
                 );
             }
@@ -110,6 +129,9 @@ export class OrderService {
             emailEvent.emit("CreateOrderAdmin", { email: process.env.EMAIL, order, userName: req["user"].name, customerEmail: req["user"].email })
             return { order }
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
 
@@ -166,6 +188,9 @@ export class OrderService {
             return { provider: "paymob", url: result.url };
 
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
 
@@ -265,21 +290,9 @@ export class OrderService {
             let subTotal: number = 0
             const products: IorderProduct[] = []
             for (const product of createOrderWithoutLoginDTO.products) {
+                const selection = this.getSelection(product as any, product.variant);
                 const checkProduct = await this.productRepository.findOne(
-                    {
-                        _id: new Types.ObjectId(product.productId),
-                        variants: {
-                            $elemMatch: {
-                                _id: new Types.ObjectId(product.variantId),
-                                size: {
-                                    $elemMatch: {
-                                        _id: new Types.ObjectId(product.sizeId),
-                                        stock: { $gte: product.quantity }
-                                    }
-                                }
-                            }
-                        }
-                    })
+                    this.buildProductFilter(new Types.ObjectId(product.productId), selection, product.quantity))
                 if (!checkProduct) {
                     throw new BadRequestException("Product not found or out of stock")
                 }
@@ -288,6 +301,7 @@ export class OrderService {
                     productId: checkProduct._id,
                     variantId: product.variantId,
                     sizeId: product.sizeId,
+                    variant: selection,
                     quantity: product.quantity,
                     unitPrice: checkProduct.finalPrice,
                     finalPrice: checkProduct.finalPrice * product.quantity
@@ -317,6 +331,7 @@ export class OrderService {
             })
 
             for (const product of products) {
+                const selection = product.variant as { color: string; size: string };
                 await this.productRepository.updateOne(
                     { _id: product.productId },
                     {
@@ -326,10 +341,7 @@ export class OrderService {
                         }
                     },
                     {
-                        arrayFilters: [
-                            { "v._id": product.variantId },
-                            { "s._id": product.sizeId, "s.stock": { $gte: product.quantity } }
-                        ]
+                        arrayFilters: this.buildArrayFilters(selection, product.quantity)
                     }
                 );
             }
@@ -337,6 +349,9 @@ export class OrderService {
             emailEvent.emit("CreateOrderAdmin", { email: process.env.EMAIL, order, userName: order.firstName + " " + order.lastName, customerEmail: order.email })
             return order
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
     }
@@ -357,6 +372,9 @@ export class OrderService {
             })
             return orders
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
     }
@@ -382,6 +400,7 @@ export class OrderService {
 
             if (body.status === OrderStatus.cancelled) {
                 for (const product of order?.products as IorderProduct[]) {
+                    const selection = this.getSelection(product as any, product.variant);
                     await this.productRepository.updateOne(
                         { _id: product.productId },
                         {
@@ -389,8 +408,8 @@ export class OrderService {
                         },
                         {
                             arrayFilters: [
-                                { "v._id": product.variantId },
-                                { "s._id": product.sizeId }
+                                { "v.color": selection.color },
+                                { "s.size": selection.size }
                             ]
                         }
                     );
@@ -398,6 +417,26 @@ export class OrderService {
             }
             return order
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
+            throw new InternalServerErrorException(error)
+        }
+    }
+
+    async updateDeposit(orderId: Types.ObjectId, body: UpdateDepositDTO) {
+        try {
+            const order = await this.orderRepository.findOne({ _id: orderId })
+            if (!order) {
+                throw new BadRequestException("Order not found")
+            }
+            order.deposit = body.deposit
+            await order.save()
+            return order
+        } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             throw new InternalServerErrorException(error)
         }
     }

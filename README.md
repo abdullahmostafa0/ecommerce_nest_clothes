@@ -31,6 +31,27 @@
 $ npm install
 ```
 
+## Local development
+
+This backend is configured to use a local MongoDB instance when `DB_MODE=local`.
+
+To install MongoDB on macOS with Homebrew:
+
+```bash
+brew tap mongodb/brew
+brew install mongodb-community@7.0
+brew services start mongodb-community@7.0
+```
+
+The local connection string is already set in [.env](.env) as:
+
+```bash
+DB_MODE=local
+DB_URL_LOCAL=mongodb://127.0.0.1:27017/ecommerce_nest_clothes
+```
+
+The database `ecommerce_nest_clothes` is created automatically the first time the app writes data.
+
 ## Compile and run the project
 
 ```bash

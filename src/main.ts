@@ -1,7 +1,11 @@
 
 import { config } from "dotenv"
 import { resolve, join } from "path"
-config({ path: resolve("config/.env") });
+import { existsSync } from "fs"
+
+// Load environment file: prefer config/.env, fall back to project root .env
+const configPath = existsSync(resolve("config/.env")) ? resolve("config/.env") : resolve(".env");
+config({ path: configPath });
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as express from "express";

@@ -4,7 +4,7 @@ import { Role } from "src/common/Decorator/role.decorator";
 import { AuthGuard } from "src/common/Guards/auth.guard";
 import { RoleGuard } from "src/common/Guards/role.guard";
 import { Request } from "express";
-import { CreateOrderDTO, CreateOrderWithoutLoginDTO, UpdateStatusDTO } from "./DTO";
+import { CreateOrderDTO, CreateOrderWithoutLoginDTO, UpdateStatusDTO, UpdateDepositDTO } from "./DTO";
 import { OrderIdDTO } from "./order.interface";
 import { Public } from "src/common/Decorator/public.decorator";
 
@@ -69,6 +69,12 @@ export class OrderController {
     @Patch(":orderId/status")
     async updateStatus(@Param() params: OrderIdDTO, @Body() body: UpdateStatusDTO) {
         return await this.orderService.updateStatus(params.orderId, body)
+    }
+
+    @Role(["admin", "superAdmin"])
+    @Patch(":orderId/deposit")
+    async updateDeposit(@Param() params: OrderIdDTO, @Body() body: UpdateDepositDTO) {
+        return await this.orderService.updateDeposit(params.orderId, body)
     }
 
 
