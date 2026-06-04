@@ -209,6 +209,11 @@ export class ProductService {
                 }
             }
 
+            const categoryFilter = query.categoryId || query.category
+            if (categoryFilter) {
+                filter.category = new Types.ObjectId(categoryFilter)
+            }
+
             const products = await this.productRepository.findAll({
                 filter,
                 sort: query.sort,

@@ -183,6 +183,10 @@ export class ProductFilterDTO extends QueryFilterDto {
     @IsOptional()
     categoryId?: string
 
+    @IsMongoId()
+    @IsOptional()
+    category?: string
+
 
     @Type(() => Number)
     @IsNumber()
